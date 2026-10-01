@@ -13,15 +13,23 @@ interface Cliente {
     email: string;
     celular: string;
 }
+interface Estado{
+    id:number;
+    nombre: string;
+    color: string;
+    created_at?: string;
+    updated_at?: string;
+}
 
 interface Computer {
     id: number;
     cliente_id: number;
     nombre: string;
-    estado: string;
+    estado_id: number;
     created_at?: string;
     updated_at?: string;
     cliente?: Cliente;
+    estado?: Estado;
 }
 
 export default function ShowComputers() {
@@ -44,14 +52,28 @@ export default function ShowComputers() {
         }
     };
 
-    // Extraer estados únicos para el selector de estado
-    const statusOptions: FilterOption[] = useMemo(() => {
-        const unique = Array.from(new Set(computers.map((c) => c.estado).filter(Boolean)));
-        return unique.map((est) => ({
-            label: est.toUpperCase(),
-            value: est,
-        }));
-    }, [computers]);
+ interface FilterOption {
+    label: string;
+    value: string;
+}
+
+// ...
+
+const statusOptions: FilterOption[] = useMemo(() => {
+    // 1. Usar un type guard (est is string) para que TypeScript sepa que no hay undefined
+    const unique = Array.from(
+        new Set(
+            computers
+                .map((c) => c.estado?.nombre)
+                .filter((nombre): nombre is string => Boolean(nombre))
+        )
+    );
+
+    return unique.map((est) => ({
+        label: est.toUpperCase(),
+        value: est,
+    }));
+}, [computers]);
 
     // Filtrar la lista de computadoras en tiempo real según cliente, fecha de ingreso, nombre y estado
     const filteredComputers = useMemo(() => {
@@ -81,7 +103,7 @@ export default function ShowComputers() {
 
             // Filtrar por estado
             if (status) {
-                if (comp.estado !== status) return false;
+                if (comp.estado?.nombre !== status) return false;
             }
 
             return true;
@@ -197,7 +219,7 @@ export default function ShowComputers() {
 
                                         <td className="px-5 py-4">
                                             <span className="inline-flex items-center gap-2 rounded-full border border-lime-400/20 bg-lime-400/10 px-3 py-1 text-xs font-black text-lime-400">
-                                                {comp.estado}
+                                                {comp.estado ? `${comp.estado.nombre}` : 'sin estado'}
                                             </span>
                                         </td>
 

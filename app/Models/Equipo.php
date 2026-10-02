@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+
 class Equipo extends Model
 {
     protected $fillable = [
@@ -36,5 +37,9 @@ class Equipo extends Model
             'estado_id' => $nuevoEstadoId,
             'observaciones' => $observaciones,
         ]);
+    }
+
+    public function create(){
+        return Inertia::render('Carreras/Create');
     }
 }

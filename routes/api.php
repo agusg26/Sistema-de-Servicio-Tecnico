@@ -9,5 +9,5 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::get('/computers', function(){
-    return response()->json(Equipo::with('cliente','estado')->get());
+    return response()->json(Equipo::with('cliente')->get());
 });

@@ -1,19 +1,17 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\CarouselController;
 use App\Http\Controllers\Equiposcontroller;
+use App\Http\Controllers\ClientesController;
 
-//Route::inertia('/', 'welcome')->name('home');
-Route::get('/', [CarouselController::class, 'index'])->name('home');
-
-Route::get('/usuarios', [UserController::class, 'index'])->name('usuarios.index');
-
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+// Redirigir la raíz directamente al listado de equipos
+Route::get('/', function () {
+    return redirect()->route('equipos.index');
 });
 
-Route::get('/equipos',[Equiposcontroller::class, 'index'])->name('equipos.index');
+// El resource maneja automático index, create y store sin duplicar rutas
+Route::resource('equipos', Equiposcontroller::class)->only(['index', 'create', 'store']);
 
-require __DIR__.'/settings.php';
+Route::resource('clientes', Clientescontroller::class)->only(['index', 'create', 'store']);
+
+require __DIR__ . '/settings.php';

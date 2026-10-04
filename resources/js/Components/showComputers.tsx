@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, FormEvent } from 'react';
 import { Eye, Pencil, PackageOpen, Calendar } from "lucide-react";
+import { router } from '@inertiajs/react';
 import axios from 'axios';
 import ProductFilters, { FilterOption } from './filter';
 
@@ -30,6 +31,8 @@ export default function ShowComputers() {
     const [clientName, setClientName] = useState('');
     const [date, setDate] = useState('');
     const [status, setStatus] = useState('');
+    const [dni, setDni] = useState('');
+    const [error, setError] = useState('');
 
     useEffect(() => {
         getAllComputers();
@@ -52,6 +55,16 @@ export default function ShowComputers() {
             value: est,
         }));
     }, [computers]);
+
+    const handleBuscar = (e: FormEvent) => {
+        e.preventDefault();
+        if (!dni.trim() || dni.length < 7) {
+            setError('Por favor, ingrese un documento válido.');
+            return;
+        }
+        setError('');
+        router.get('/equipos/create', { dni: dni });
+    }
 
     // Filtrar la lista de computadoras en tiempo real según cliente, fecha de ingreso, nombre y estado
     const filteredComputers = useMemo(() => {
@@ -244,6 +257,24 @@ export default function ShowComputers() {
                         </tbody>
                     </table>
                 </div>
+            </div>
+            <div className="overflow-hidden border border-[#292929] bg-[#0b0b0b]">
+                <form onSubmit={handleBuscar} className="flex gap-2 p-2">
+                    <input
+                        type="text"
+                        name='dni'
+                        value={dni}
+                        onChange={(e) => setDni(e.target.value)}
+                        placeholder='Ingrese el documento del cliente'
+                        className="border p-2 rounded text-black"
+                    />
+                    <button type='submit' className='bg-lime-500 px-4 py-2 text-white rounded hover:bg-lime-600'>
+                        Registrar equipo
+                    </button>
+                    {error && (
+                        <p className="text-red-500 text-sm mt-1">{error}</p>
+                    )}
+                </form>
             </div>
         </section>
     );

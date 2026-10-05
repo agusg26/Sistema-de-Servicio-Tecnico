@@ -19,16 +19,26 @@ interface Computer {
     id: number;
     cliente_id: number;
     nombre: string;
-    estado: string;
+    estado_id: number;
     created_at?: string;
     updated_at?: string;
     cliente?: Cliente;
+    estado?: Estado;
+}
+
+interface Estado {
+    id: number;
+    nombre: string;
+    color: string;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export default function ShowComputers() {
     const [computers, setComputers] = useState<Computer[]>([]);
     const [search, setSearch] = useState('');
     const [clientName, setClientName] = useState('');
+    const [estadoName, setEstadoName] = useState<Estado[]>([]);
     const [date, setDate] = useState('');
     const [status, setStatus] = useState('');
     const [dni, setDni] = useState('');
@@ -49,12 +59,12 @@ export default function ShowComputers() {
 
     // Extraer estados únicos para el selector de estado
     const statusOptions: FilterOption[] = useMemo(() => {
-        const unique = Array.from(new Set(computers.map((c) => c.estado).filter(Boolean)));
+        const unique = Array.from(new Set(estadoName.map((e) => e.nombre).filter(Boolean)));
         return unique.map((est) => ({
-            label: est.toUpperCase(),
+            label: est?.toUpperCase(),
             value: est,
         }));
-    }, [computers]);
+    }, [estadoName]);
 
     const handleBuscar = (e: FormEvent) => {
         e.preventDefault();
@@ -94,7 +104,7 @@ export default function ShowComputers() {
 
             // Filtrar por estado
             if (status) {
-                if (comp.estado !== status) return false;
+                if (comp.estado?.nombre !== status) return false;
             }
 
             return true;
@@ -209,8 +219,22 @@ export default function ShowComputers() {
                                         </td>
 
                                         <td className="px-5 py-4">
-                                            <span className="inline-flex items-center gap-2 rounded-full border border-lime-400/20 bg-lime-400/10 px-3 py-1 text-xs font-black text-lime-400">
-                                                {comp.estado}
+                                            <span
+                                                className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black text-gray-100"
+                                                style={{
+                                                    backgroundColor: `${comp.estado?.color}15`,
+                                                    borderColor: `${comp.estado?.color}40`,
+                                                    color: comp.estado?.color,
+                                                }}
+                                            >
+                                                <span
+                                                    className="h-2 w-2 rounded-full"
+                                                    style={{
+                                                        backgroundColor: comp.estado?.color,
+                                                    }}
+                                                />
+
+                                                {comp.estado?.nombre}
                                             </span>
                                         </td>
 
@@ -268,8 +292,17 @@ export default function ShowComputers() {
                         placeholder='Ingrese el documento del cliente'
                         className="border p-2 rounded text-black"
                     />
-                    <button type='submit' className='bg-lime-500 px-4 py-2 text-white rounded hover:bg-lime-600'>
-                        Registrar equipo
+                    <button type='submit'
+                        className='flex h-14 items-center justify-center gap-2
+            border border-lime-400
+            px-6
+            text-sm font-black tracking-wider
+            text-lime-400
+            transition
+            hover:bg-lime-400
+            hover:text-black
+            cursor-pointer'>
+                        NUEVO EQUIPO
                     </button>
                     {error && (
                         <p className="text-red-500 text-sm mt-1">{error}</p>

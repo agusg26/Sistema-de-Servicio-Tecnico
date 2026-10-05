@@ -12,6 +12,6 @@ Route::get('/', function () {
 // El resource maneja automático index, create y store sin duplicar rutas
 Route::resource('equipos', Equiposcontroller::class)->only(['index', 'create', 'store']);
 
-Route::resource('clientes', Clientescontroller::class)->only(['index', 'create', 'store']);
+Route::resource('clientes', Clientescontroller::class);
 
 require __DIR__ . '/settings.php';

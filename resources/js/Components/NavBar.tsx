@@ -5,6 +5,7 @@ import {
     BarChart3,
     Bell,
     UserCircle,
+    UserGroup
 } from "lucide-react";
 
 const menuItems = [
@@ -12,14 +13,16 @@ const menuItems = [
         name: "EQUIPOS",
         icon: Package,
         active: true,
+        link: route("equipos.index")
     },
     {
         name: "CLIENTES",
-        icon: Boxes,
+        icon: UserGroup,
+        link: route("clientes.index")
     },
     {
         name: "REPUESTOS",
-        icon: Package,
+        icon: Boxes,
     },
     {
         name: "REPORTES",
@@ -51,7 +54,7 @@ export default function Navbar() {
                         const Icon = item.icon;
 
                         return (
-                            <button
+                            <a href={item.link}><button
                                 key={item.name}
                                 className={`
                   flex h-full items-center gap-3 border-r border-[#292929]
@@ -64,7 +67,7 @@ export default function Navbar() {
                             >
                                 <Icon size={20} />
                                 {item.name}
-                            </button>
+                            </button></a>
                         );
                     })}
                 </nav>

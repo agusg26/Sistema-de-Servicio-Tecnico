@@ -1,36 +1,44 @@
 import {
     Wrench,
-    Package,
+    Monitor,
     Boxes,
     BarChart3,
     Bell,
     UserCircle,
     UserGroup
 } from "lucide-react";
+import { Link, usePage } from '@inertiajs/react';
+import { useState } from "react";
+import { Route } from "lucide-react";
+import { link } from "fs";
+
+
 
 const menuItems = [
     {
         name: "EQUIPOS",
-        icon: Package,
-        active: true,
-        link: route("equipos.index")
+        icon: Monitor,
+        link: "/equipos",
     },
     {
         name: "CLIENTES",
         icon: UserGroup,
-        link: route("clientes.index")
+        link: "/clientes",
     },
     {
         name: "REPUESTOS",
         icon: Boxes,
+        link: "undefinde"
     },
     {
         name: "REPORTES",
         icon: BarChart3,
+        link:"undefindes"
     },
 ];
 
 export default function Navbar() {
+    const {url} = usePage();
     return (
         <header className="border border-[#292929] bg-[#0c0c0c]">
             <div className="flex h-16 items-center">
@@ -52,22 +60,26 @@ export default function Navbar() {
                 <nav className="flex h-full flex-1">
                     {menuItems.map((item) => {
                         const Icon = item.icon;
+                        const isActive = url.startsWith(item.link);
 
                         return (
-                            <a href={item.link}><button
-                                key={item.name}
-                                className={`
-                  flex h-full items-center gap-3 border-r border-[#292929]
-                  px-7 text-sm font-black tracking-wider transition
-                  ${item.active
-                                        ? "border-b-2 border-lime-400 text-lime-400"
-                                        : "text-gray-400 hover:bg-[#151515] hover:text-white"
-                                    }
-                `}
+                            <Link
+                            key = {item.name}
+                            href= {item.link}
+                            >
+                            <button className={`
+                                        flex h-full items-center gap-3 border-r border-[#292929]
+                                        px-7 text-sm font-black tracking-wider transition cursor-pointer
+                                        ${isActive
+                                            ? "border-b-2 border-lime-400 text-lime-400 bg-[#151515]/50"
+                                            : "text-gray-400 hover:bg-[#151515] hover:text-white"
+                                        }
+                                    `}
                             >
                                 <Icon size={20} />
+                                
                                 {item.name}
-                            </button></a>
+                            </button></Link>
                         );
                     })}
                 </nav>

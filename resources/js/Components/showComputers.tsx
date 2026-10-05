@@ -290,7 +290,18 @@ export default function ShowComputers() {
                         value={dni}
                         onChange={(e) => setDni(e.target.value)}
                         placeholder='Ingrese el documento del cliente'
-                        className="border p-2 rounded text-black"
+                        className="         h-12
+                                            border border-[#292929]
+                                            bg-[#090909]
+                                            px-4
+                                            text-sm text-white
+                                            outline-none
+                                            transition
+                                            placeholder:text-gray-700
+                                            focus:border-lime-400
+                                            disabled:cursor-not-allowed
+                                            disabled:bg-[#111111]
+                                            disabled:text-gray-500"
                     />
                     <button type='submit'
                         className='flex h-14 items-center justify-center gap-2

@@ -27,6 +27,14 @@ class Equipo extends Model
     {
         return $this->hasMany(HistorialEstado::class)->orderBy('created_at', 'desc');
     }
+    public function reparaciones()
+    {
+        return $this->hasMany(Reparacion::class);
+    }
+    public function presupuestos()
+    {
+        return $this->hasMany(Presupuesto::class);
+    }
 
     public function cambiarEstado(int $nuevoEstadoId, ?string $observaciones = null): void
     {

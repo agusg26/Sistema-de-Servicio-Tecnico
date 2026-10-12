@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('marca');
             $table->integer('stock');
             $table->decimal('precio_unitario');
-            $table->foreignId(Categoria_repuesto::class)->constrained('categoria_repuestos')->cascadeOnDelete();
+            $table->foreignId('categoria_repuesto_id')->constrained('categoria_repuestos')->onDelete('cascade');
             $table->boolean('activo')->default(true);
             $table->timestamps();
         });

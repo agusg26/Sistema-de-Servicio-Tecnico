@@ -15,12 +15,12 @@ return new class extends Migration
     {
         Schema::create('reparaciones', function (Blueprint $table) {
             $table->id();
-            $table->date('titulo');
+            $table->string('titulo');
             $table->string('descripcion');
             $table->integer('costo');
             $table->boolean('presupuesto_aprobado')->default(true);
             $table->foreignId('equipo_id')->constrained('equipos')->cascadeOnDelete();
-            $table->foreignId('repuesto_id')->constrained('repuestos')->cascadeOnDelete();
+            $table->foreignId('repuesto_id')->nullable()->constrained('repuestos')->nullOnDelete();
             $table->timestamps();
         });
     }

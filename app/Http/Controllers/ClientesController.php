@@ -44,7 +44,7 @@ class ClientesController extends Controller
      */
     public function edit(Cliente $cliente)
     {
-        return Inertia::redner('Clientes/EditClients', [
+        return Inertia::render('Clientes/EditClients', [
             'cliente' => $cliente
         ]);
     }

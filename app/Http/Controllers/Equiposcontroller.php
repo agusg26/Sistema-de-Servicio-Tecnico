@@ -7,6 +7,7 @@ use Inertia\Inertia;
 use App\Models\Estado;
 use App\Models\Cliente;
 use App\Models\Equipo;
+use App\Models\Reparacion;
 use Illuminate\Support\Facades\DB;
 
 class Equiposcontroller extends Controller
@@ -62,5 +63,37 @@ class Equiposcontroller extends Controller
         });
 
         return redirect()->route('equipos.index')->with('success', 'Cliente y equipo registrados exitosamente.');
+    }
+
+    public function show(Equipo $equipo) {}
+
+    public function edit(Equipo $equipo)
+    {
+        $equipo->load(['cliente', 'estado', 'reparaciones.repuesto']);
+
+        return Inertia::render('EditEquipos', [
+            'equipo' => $equipo,
+            'estados' => Estado::all(),
+            'reparaciones' => $equipo->reparaciones,
+            'repuestos' => \App\Models\Repuesto::select('id', 'nombre', 'precio_unitario')->get(),
+        ]);
+    }
+
+    public function update(Request $request, Equipo $equipo)
+    {
+        $validated = $request->validate([
+            'nombre' => 'required|string|max:255',
+            'estado_id' => 'required|exists:estados,id',
+        ]);
+
+        $equipo->update($validated);
+
+        return redirect()->route('equipos.index')->with('success', 'Equipo actualizado exitosamente.');
+    }
+
+    public function destroy(Equipo $equipo)
+    {
+        $equipo->delete();
+        return redirect()->route('equipos.index')->with('success', 'Equipo eliminado exitosamente.');
     }
 }

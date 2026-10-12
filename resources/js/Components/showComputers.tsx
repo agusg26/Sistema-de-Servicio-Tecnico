@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, FormEvent } from 'react';
 import { Eye, Pencil, PackageOpen, Calendar } from "lucide-react";
-import { router } from '@inertiajs/react';
+import { router, Link } from '@inertiajs/react';
 import axios from 'axios';
 import ProductFilters, { FilterOption } from './filter';
 
@@ -258,6 +258,7 @@ export default function ShowComputers() {
                                                 </button>
 
                                                 <button
+                                                    onClick={() => router.visit(route('equipos.edit', comp.id))}
                                                     className="
                             flex items-center gap-2
                             border border-[#333]

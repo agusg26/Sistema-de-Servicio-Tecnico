@@ -274,7 +274,7 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
                                                 <div className="flex flex-wrap items-start justify-between gap-2 border-b border-[#1f1f1f] pb-3">
                                                     <div className="space-y-1">
                                                         <p className="text-xs text-gray-400 leading-relaxed">
-                                                            {rep.descripcion}
+                                                            <b>{rep.titulo}</b>
                                                         </p>
                                                     </div>
 

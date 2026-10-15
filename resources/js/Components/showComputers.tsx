@@ -73,7 +73,7 @@ export default function ShowComputers() {
             return;
         }
         setError('');
-        router.get('/equipos/create', { dni: dni });
+        router.get('/equipos/create', { dni: dni.trim() });
     }
 
     // Filtrar la lista de computadoras en tiempo real según cliente, fecha de ingreso, nombre y estado

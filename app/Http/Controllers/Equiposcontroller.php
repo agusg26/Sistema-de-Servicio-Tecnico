@@ -23,10 +23,12 @@ class Equiposcontroller extends Controller
     public function create()
     {
         $dni = request()->query('dni');
+        $dni = is_string($dni) ? trim($dni) : null;
         $clienteExistente = $dni ? Cliente::where('dni', $dni)->first() : null;
         return Inertia::render('createEquipos', [
             'estados' => Estado::all(),
-            'clienteExistente' => $clienteExistente
+            'clienteExistente' => $clienteExistente,
+            'dni' => $dni,
         ]);
     }
 

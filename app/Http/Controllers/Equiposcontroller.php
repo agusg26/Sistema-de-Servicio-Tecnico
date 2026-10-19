@@ -9,6 +9,7 @@ use App\Models\Cliente;
 use App\Models\Equipo;
 use App\Models\Reparacion;
 use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 class Equiposcontroller extends Controller
 {
@@ -61,6 +62,7 @@ class Equiposcontroller extends Controller
                 'cliente_id' => $clienteId,
                 'nombre' => $validated['equipo']['nombre'],
                 'estado_id' => $validated['equipo']['estado_id'],
+                'user_id' => null,
             ]);
         });
 
@@ -71,11 +73,12 @@ class Equiposcontroller extends Controller
 
     public function edit(Equipo $equipo)
     {
-        $equipo->load(['cliente', 'estado', 'reparaciones.repuesto']);
+        $equipo->load(['cliente', 'estado', 'tecnico', 'reparaciones.repuesto']);
 
         return Inertia::render('EditEquipos', [
             'equipo' => $equipo,
             'estados' => Estado::all(),
+            'users' => User::all(),
             'reparaciones' => $equipo->reparaciones,
             'repuestos' => \App\Models\Repuesto::select('id', 'nombre', 'precio_unitario')->get(),
         ]);
@@ -86,6 +89,7 @@ class Equiposcontroller extends Controller
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'estado_id' => 'required|exists:estados,id',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
         $equipo->update($validated);

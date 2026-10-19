@@ -28,6 +28,13 @@ interface Repuesto {
     stock?: number;
 }
 
+interface User {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+}
+
 interface Reparacion {
     id: number;
     titulo: string;
@@ -54,6 +61,9 @@ interface Equipo {
     cliente_id?: number;
     cliente?: Cliente;
     estado?: Estado;
+    user_id: number | null;
+    user?: User;
+    tecnico?: User;
     created_at?: string;
 }
 
@@ -62,9 +72,10 @@ interface Props {
     estados: Estado[];
     reparaciones: Reparacion[];
     repuestos: Repuesto[];
+    users: User[];
 }
 
-export default function EditEquipos({ equipo, estados = [], reparaciones = [], repuestos = [] }: Props) {
+export default function EditEquipos({ equipo, estados = [], reparaciones = [], repuestos = [], users = [] }: Props) {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
 
@@ -78,6 +89,7 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
     } = useForm({
         nombre: equipo.nombre || '',
         estado_id: equipo.estado_id || (estados.length > 0 ? estados[0].id : 1),
+        user_id: equipo.user_id ?? '',
     });
 
     const handleEquipoSubmit = (e: FormEvent) => {
@@ -188,6 +200,30 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
                                     {equipoErrors.estado_id && (
                                         <p className="mt-1.5 text-xs font-bold text-red-400">
                                             {equipoErrors.estado_id}
+                                        </p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-xs font-black tracking-wider text-gray-400 uppercase">
+                                        Tecnico Asignado <span className="text-lime-400">*</span>
+                                    </label>
+                                    <select
+                                        value={equipoData.user_id ?? ''}
+                                        onChange={(e) => setEquipoData('user_id', e.target.value ? Number(e.target.value) : '')}
+                                        className="h-11 w-full border border-[#292929] bg-[#090909] px-4 text-sm text-white outline-none transition focus:border-lime-400 focus:ring-0"
+                                    >
+                                        <option value="" className="bg-[#111111] text-gray-500">
+                                            Seleccionar t?cnico...
+                                        </option>
+                                        {users?.map((usr) => (
+                                            <option key={usr.id} value={usr.id} className="bg-[#111111] text-white">
+                                                {usr.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {equipoErrors.user_id && (
+                                        <p className="mt-1.5 text-xs font-bold text-red-400">
+                                            {equipoErrors.user_id}
                                         </p>
                                     )}
                                 </div>

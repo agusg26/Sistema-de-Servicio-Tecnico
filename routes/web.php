@@ -9,11 +9,13 @@ Route::get('/', function () {
     return redirect()->route('equipos.index');
 });
 
-// El resource maneja automático index, create y store sin duplicar rutas
+
 Route::resource('equipos', Equiposcontroller::class);
 
 Route::resource('clientes', Clientescontroller::class);
 
 Route::resource('reparaciones', Reparacionescontroller::class);
+
+require __DIR__ . '/auth.php';
 
 require __DIR__ . '/settings.php';

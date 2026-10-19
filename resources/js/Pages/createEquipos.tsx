@@ -47,7 +47,7 @@ export default function CreateEquipos({
 
         equipo: {
             nombre: '',
-            estado_id: '',
+            estado_id: 1,
         },
     });
 
@@ -341,7 +341,7 @@ export default function CreateEquipos({
                                 </div>
 
                                 {/* Estado */}
-                                <div>
+                                <div className='hidden'>
                                     <label className="mb-2 block text-xs font-black tracking-wider text-gray-500">
                                         ESTADO INICIAL
                                     </label>
@@ -351,7 +351,7 @@ export default function CreateEquipos({
                                         onChange={(e) =>
                                             setData('equipo', {
                                                 ...data.equipo,
-                                                estado_id: e.target.value,
+                                                estado_id: Number(e.target.value),
                                             })
                                         }
                                         className="
@@ -365,7 +365,7 @@ export default function CreateEquipos({
                                             focus:border-lime-400
                                         "
                                     >
-                                        <option value="">
+                                        <option value={1}>
                                             Seleccione un estado
                                         </option>
 

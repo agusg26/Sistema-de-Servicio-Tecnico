@@ -11,6 +11,7 @@ class Equipo extends Model
         'cliente_id',
         'nombre',
         'estado_id',
+        'user_id',
     ];
 
     public function cliente(): BelongsTo
@@ -34,6 +35,10 @@ class Equipo extends Model
     public function presupuestos()
     {
         return $this->hasMany(Presupuesto::class);
+    }
+    public function tecnico(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function cambiarEstado(int $nuevoEstadoId, ?string $observaciones = null): void

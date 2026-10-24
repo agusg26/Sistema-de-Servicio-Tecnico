@@ -14,7 +14,9 @@ Route::resource('equipos', Equiposcontroller::class);
 
 Route::resource('clientes', Clientescontroller::class);
 
-Route::resource('reparaciones', Reparacionescontroller::class);
+Route::resource('reparaciones', Reparacionescontroller::class)->parameters([
+    'reparaciones' => 'reparacion',
+]);
 
 require __DIR__ . '/auth.php';
 

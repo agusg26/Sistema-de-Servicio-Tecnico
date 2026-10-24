@@ -15,6 +15,7 @@ interface Props {
     onClose: () => void;
     equipoId: number;
     equipoNombre: string;
+    equipoEstado: number;
     repuestos: Repuesto[];
 }
 
@@ -23,6 +24,7 @@ export default function ModalNuevaReparacion({
     onClose,
     equipoId,
     equipoNombre,
+    equipoEstado,
     repuestos = [],
 }: Props) {
     const [searchRepuesto, setSearchRepuesto] = useState('');
@@ -285,9 +287,8 @@ export default function ModalNuevaReparacion({
                                     >
                                         <ChevronDown
                                             size={16}
-                                            className={`transition-transform duration-200 ${
-                                                isRepuestoOpen ? 'rotate-180' : ''
-                                            }`}
+                                            className={`transition-transform duration-200 ${isRepuestoOpen ? 'rotate-180' : ''
+                                                }`}
                                         />
                                     </button>
                                 </div>
@@ -300,11 +301,10 @@ export default function ModalNuevaReparacion({
                                     <button
                                         type="button"
                                         onClick={() => handleSelectRepuesto(null)}
-                                        className={`flex w-full items-center justify-between border-b border-[#1f1f1f] px-4 py-2.5 text-left text-xs transition hover:bg-[#161616] ${
-                                            data.repuesto_id === null
-                                                ? 'bg-[#151515] text-lime-400 font-bold'
-                                                : 'text-gray-400'
-                                        }`}
+                                        className={`flex w-full items-center justify-between border-b border-[#1f1f1f] px-4 py-2.5 text-left text-xs transition hover:bg-[#161616] ${data.repuesto_id === null
+                                            ? 'bg-[#151515] text-lime-400 font-bold'
+                                            : 'text-gray-400'
+                                            }`}
                                     >
                                         <div className="flex items-center gap-2">
                                             <span className="italic">Sin repuesto asignado (Solo mano de obra)</span>
@@ -325,11 +325,10 @@ export default function ModalNuevaReparacion({
                                                     key={rep.id}
                                                     type="button"
                                                     onClick={() => handleSelectRepuesto(rep)}
-                                                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-xs transition border-b border-[#181818] last:border-b-0 hover:bg-[#161616] ${
-                                                        isSelected
-                                                            ? 'bg-[#151515] text-lime-400'
-                                                            : 'text-gray-200'
-                                                    }`}
+                                                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-xs transition border-b border-[#181818] last:border-b-0 hover:bg-[#161616] ${isSelected
+                                                        ? 'bg-[#151515] text-lime-400'
+                                                        : 'text-gray-200'
+                                                        }`}
                                                 >
                                                     <div className="space-y-0.5">
                                                         <div className="flex items-center gap-2">

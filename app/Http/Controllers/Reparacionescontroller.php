@@ -6,7 +6,9 @@ use App\Models\Reparacion;
 use App\Models\Equipo;
 use App\Models\Repuesto;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class Reparacionescontroller extends Controller
 {
@@ -43,11 +45,19 @@ class Reparacionescontroller extends Controller
             'presupuesto_aprobado' => 'nullable|boolean',
         ]);
 
+        $validated['costo'] = (int) round((float) $validated['costo']);
+
         if (!isset($validated['presupuesto_aprobado'])) {
             $validated['presupuesto_aprobado'] = true;
         }
 
-        Reparacion::create($validated);
+        DB::transaction(function () use ($validated) {
+            Reparacion::create($validated);
+            $equipo = Equipo::findOrFail($validated['equipo_id']);
+            if ($equipo->estado_id !== 4) {
+                $equipo->update(['estado_id' => 4]);
+            }
+        });
 
         return redirect()->back()->with('success', 'Reparación agregada exitosamente.');
     }
@@ -63,13 +73,20 @@ class Reparacionescontroller extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Reparacion $reparacion) {}
+    public function edit(Reparacion $reparacion)
+    {
+        return Inertia::render('Equipos/{equipo}/EditEquipos/{reparacion}', [
+            'reparacion' => $reparacion,
+            'repuestos' => Repuesto::all()
+        ]);
+    }
 
-    /**
-     * Update the specified resource in storage.
-     */
+
     public function update(Request $request, Reparacion $reparacion)
     {
+        Log::info('--- UPDATE REPARACION ---');
+        Log::info('ID recibido en ruta:', ['id' => $reparacion->id]);
+        Log::info('Payload recibido:', $request->all());
         $validated = $request->validate([
             'titulo' => 'required|string|max:255',
             'descripcion' => 'required|string',
@@ -77,8 +94,10 @@ class Reparacionescontroller extends Controller
             'repuesto_id' => 'nullable|exists:repuestos,id',
             'presupuesto_aprobado' => 'nullable|boolean',
         ]);
+        Log::info('Validacion OK:', $validated);
 
         $reparacion->update($validated);
+        Log::info('Reparacion actualizada:', $reparacion->fresh()->toArray());
 
         return redirect()->back()->with('success', 'Reparación actualizada exitosamente.');
     }

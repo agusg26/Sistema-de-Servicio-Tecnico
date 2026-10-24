@@ -73,7 +73,7 @@ class Equiposcontroller extends Controller
 
     public function edit(Equipo $equipo)
     {
-        $equipo->load(['cliente', 'estado', 'tecnico', 'reparaciones.repuesto']);
+        $equipo->load(['cliente', 'estado', 'tecnico', 'presupuesto', 'reparaciones.repuesto']);
 
         return Inertia::render('EditEquipos', [
             'equipo' => $equipo,
@@ -91,6 +91,14 @@ class Equiposcontroller extends Controller
             'estado_id' => 'required|exists:estados,id',
             'user_id' => 'nullable|exists:users,id',
         ]);
+
+        if (
+            $validated['user_id'] != null &&
+            $validated['user_id'] != (int) $equipo->user_id &&
+            $equipo->estado_id != 2
+        ) {
+            $validated['estado_id'] = 2;
+        }
 
         $equipo->update($validated);
 

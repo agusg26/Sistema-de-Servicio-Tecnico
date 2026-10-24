@@ -1,7 +1,8 @@
-import { useState, FormEvent } from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { useState, FormEvent, useEffect, useMemo } from 'react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { MainLayout } from '@/Layouts/MainLayout';
 import ModalNuevaReparacion from '@/Components/ModalNuevaReparacion';
+import ModalEditarReparacion from '@/Components/ModalEditarReparacion';
 import {
     Save,
     Plus,
@@ -11,8 +12,16 @@ import {
     Laptop,
     User,
     CheckCircle2,
+    Pencil,
+    Trash2,
     Clock,
 } from 'lucide-react';
+
+interface Presupuesto {
+    monto: number;
+    equipo_id: number;
+    aprobado: boolean;
+}
 
 interface Estado {
     id: number;
@@ -37,10 +46,11 @@ interface User {
 
 interface Reparacion {
     id: number;
+    equipo_id: number;
     titulo: string;
     descripcion: string;
     costo: number;
-    repuesto_id: number;
+    repuesto_id: number | null;
     presupuesto_aprobado?: boolean;
     created_at?: string;
     repuesto?: Repuesto;
@@ -62,6 +72,7 @@ interface Equipo {
     cliente?: Cliente;
     estado?: Estado;
     user_id: number | null;
+    presupuesto?: Presupuesto;
     user?: User;
     tecnico?: User;
     created_at?: string;
@@ -72,12 +83,19 @@ interface Props {
     estados: Estado[];
     reparaciones: Reparacion[];
     repuestos: Repuesto[];
+    presupuesto: Presupuesto;
     users: User[];
 }
 
-export default function EditEquipos({ equipo, estados = [], reparaciones = [], repuestos = [], users = [] }: Props) {
+export default function EditEquipos({
+    equipo,
+    estados = [],
+    reparaciones = [],
+    repuestos = [],
+    users = [],
+}: Props) {
     const [isModalOpen, setIsModalOpen] = useState(false);
-
+    const [reparacionAEditar, setReparacionAEditar] = useState<Reparacion | null>(null);
 
     const {
         data: equipoData,
@@ -97,7 +115,66 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
         putEquipo(route('equipos.update', equipo.id));
     };
 
-    const totalCostoReparaciones = reparaciones.reduce((acc, rep) => acc + (Number(rep.costo) || 0), 0);
+    useEffect(() => {
+        setEquipoData('estado_id', equipo.estado_id);
+    }, [equipo.estado_id]);
+
+    const handleCambiarEstado = (nombreEstado: string, mensajeConfirmacion: string) => {
+        const estadoSeleccionado = estados.find(
+            (e) => e.nombre.toLowerCase() === nombreEstado.toLowerCase()
+        );
+        if (!estadoSeleccionado) {
+            alert(`No se encontró un estado con el nombre "${nombreEstado}"`);
+            return;
+        }
+        if (!confirm(mensajeConfirmacion)) {
+            return;
+        }
+        router.put(
+            route('equipos.update', equipo.id),
+            {
+                nombre: equipo.nombre,
+                estado_id: estadoSeleccionado.id,
+                user_id: equipo.user_id ?? '',
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setEquipoData('estado_id', estadoSeleccionado.id);
+                },
+            }
+        );
+    };
+
+    // Actualiza la reparación a presupuesto_aprobado = false y repuesto_id = null vía PUT
+    const handleDeleteReparacion = (rep: Reparacion) => {
+        if (!confirm(`¿Estás seguro de quitar la reparacion "${rep.titulo}"?`)) {
+            return;
+        }
+
+        router.put(
+            route('reparaciones.update', rep.id),
+            {
+                titulo: rep.titulo,
+                descripcion: rep.descripcion,
+                costo: rep.costo,
+                presupuesto_aprobado: false,
+                repuesto_id: null,
+            },
+            {
+                preserveScroll: true,
+            }
+        );
+    };
+
+    // Solo mostramos reparaciones con presupuesto aprobado true o null
+    const reparacionesVisibles = useMemo(() => {
+        return reparaciones.filter(
+            (rep) => rep.presupuesto_aprobado === true || rep.presupuesto_aprobado == null
+        );
+    }, [reparaciones]);
+
+    const montoPresupuesto = Number(equipo.presupuesto?.monto) || 0;
 
     return (
         <MainLayout>
@@ -143,8 +220,7 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
                 </div>
 
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
-
-                    {/*COLUMNA IZQUIERDA: FORMULARIO DEL EQUIPO*/}
+                    {/* COLUMNA IZQUIERDA: FORMULARIO DEL EQUIPO */}
                     <div className="lg:col-span-5 space-y-6">
                         <div className="border border-[#292929] bg-[#0b0b0b] shadow-xl overflow-hidden">
                             <div className="flex items-center justify-between border-b border-[#292929] px-6 py-4 bg-[#0e0e0e]">
@@ -182,6 +258,7 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
                                         </p>
                                     )}
                                 </div>
+
                                 <div>
                                     <label className="mb-2 block text-xs font-black tracking-wider text-gray-400 uppercase">
                                         Estado Actual <span className="text-lime-400">*</span>
@@ -203,9 +280,10 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
                                         </p>
                                     )}
                                 </div>
+
                                 <div>
                                     <label className="mb-2 block text-xs font-black tracking-wider text-gray-400 uppercase">
-                                        Tecnico Asignado <span className="text-lime-400">*</span>
+                                        Técnico Asignado <span className="text-lime-400">*</span>
                                     </label>
                                     <select
                                         value={equipoData.user_id ?? ''}
@@ -213,7 +291,7 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
                                         className="h-11 w-full border border-[#292929] bg-[#090909] px-4 text-sm text-white outline-none transition focus:border-lime-400 focus:ring-0"
                                     >
                                         <option value="" className="bg-[#111111] text-gray-500">
-                                            Seleccionar t?cnico...
+                                            Seleccionar técnico...
                                         </option>
                                         {users?.map((usr) => (
                                             <option key={usr.id} value={usr.id} className="bg-[#111111] text-white">
@@ -230,13 +308,13 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
 
                                 <div className="rounded border border-[#1f1f1f] bg-[#080808] p-4 text-xs space-y-2">
                                     <div className="flex justify-between text-gray-400">
-                                        <span>Total de reparaciones:</span>
-                                        <span className="font-bold text-white">{reparaciones.length}</span>
+                                        <span>Total de reparaciones visibles:</span>
+                                        <span className="font-bold text-white">{reparacionesVisibles.length}</span>
                                     </div>
                                     <div className="flex justify-between text-gray-400">
                                         <span>Gasto total acumulado:</span>
                                         <span className="font-bold text-lime-400 font-mono">
-                                            ${totalCostoReparaciones.toLocaleString('es-AR')}
+                                            ${montoPresupuesto.toLocaleString('es-AR')}
                                         </span>
                                     </div>
                                 </div>
@@ -245,7 +323,7 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
                                     <button
                                         type="submit"
                                         disabled={equipoProcessing}
-                                        className="flex w-full items-center justify-center gap-2 bg-lime-400 px-6 py-3 text-xs font-black tracking-wider text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex w-full items-center justify-center gap-2 bg-gray-700 px-6 py-3 text-xs font-black tracking-wider text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <Save size={16} />
                                         {equipoProcessing ? 'GUARDANDO...' : 'GUARDAR CAMBIOS DEL EQUIPO'}
@@ -265,7 +343,7 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
                                         Reparaciones Asociadas
                                     </h2>
                                     <span className="rounded-full bg-[#1e1e1e] border border-[#333333] px-2.5 py-0.5 text-xs font-bold text-lime-400">
-                                        {reparaciones.length}
+                                        {reparacionesVisibles.length}
                                     </span>
                                 </div>
 
@@ -280,16 +358,16 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
                             </div>
 
                             <div className="p-6">
-                                {reparaciones.length === 0 ? (
+                                {reparacionesVisibles.length === 0 ? (
                                     <div className="py-12 px-4 text-center border border-dashed border-[#262626] bg-[#080808]">
                                         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#151515] text-gray-500">
                                             <Wrench size={22} />
                                         </div>
                                         <h3 className="text-sm font-bold text-gray-300">
-                                            No hay reparaciones registradas
+                                            No hay reparaciones aprobadas o registradas
                                         </h3>
                                         <p className="mt-1 text-xs text-gray-500 max-w-sm mx-auto">
-                                            Este equipo aún no posee intervenciones técnicas ni reparaciones vinculadas.
+                                            Este equipo aún no posee intervenciones técnicas aprobadas.
                                         </p>
                                         <button
                                             type="button"
@@ -302,7 +380,7 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
-                                        {reparaciones.map((rep) => (
+                                        {reparacionesVisibles.map((rep) => (
                                             <div
                                                 key={rep.id}
                                                 className="border border-[#202020] bg-[#0f0f0f] p-4 transition hover:border-[#383838] hover:bg-[#131313]"
@@ -314,10 +392,32 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
                                                         </p>
                                                     </div>
 
-                                                    <div className="text-right">
-                                                        <span className="text-base font-black text-lime-400 font-mono">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-base font-black text-lime-400 font-mono mr-2">
                                                             ${Number(rep.costo).toLocaleString('es-AR')}
                                                         </span>
+
+                                                        {/* BOTÓN EDITAR */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setReparacionAEditar(rep)}
+                                                            className="flex items-center gap-1.5 rounded border border-[#2a2a2a] bg-[#141414] px-2.5 py-1 text-xs font-bold text-gray-300 transition hover:border-lime-400/40 hover:bg-lime-400/10 hover:text-lime-400"
+                                                            title="Editar esta reparación"
+                                                        >
+                                                            <Pencil size={13} />
+                                                            <span>Editar</span>
+                                                        </button>
+
+                                                        {/* BOTÓN QUITAR / DESAPROBAR VÍA PUT */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteReparacion(rep)}
+                                                            className="flex items-center gap-1.5 rounded border border-[#2a2a2a] bg-[#141414] px-2.5 py-1 text-xs font-bold text-gray-400 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400"
+                                                            title="Quitar esta reparación del presupuesto"
+                                                        >
+                                                            <Trash2 size={13} />
+                                                            <span>Quitar</span>
+                                                        </button>
                                                     </div>
                                                 </div>
 
@@ -352,26 +452,65 @@ export default function EditEquipos({ equipo, estados = [], reparaciones = [], r
                                                 </div>
                                             </div>
                                         ))}
+
                                         <div className="flex items-center justify-between border-t border-[#292929] pt-4 px-1">
                                             <span className="text-xs font-black tracking-wider text-gray-400 uppercase">
                                                 Costo Total de Reparaciones:
                                             </span>
                                             <span className="text-lg font-black text-lime-400 font-mono">
-                                                ${totalCostoReparaciones.toLocaleString('es-AR')}
+                                                ${montoPresupuesto.toLocaleString('es-AR')}
                                             </span>
                                         </div>
                                     </div>
                                 )}
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#1f1f1f] bg-[#0c0c0c] p-4">
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        handleCambiarEstado(
+                                            'Cancelado',
+                                            '¿Estás seguro de cancelar la reparación del equipo?'
+                                        )
+                                    }
+                                    className="inline-flex items-center gap-2 bg-red-400 px-4 py-2 text-xs font-black tracking-wider text-black transition hover:bg-red-300"
+                                >
+                                    CANCELAR REPARACIÓN
+                                </button>
+                                <button
+                                    type="button"
+                                    className="inline-flex items-center gap-2 bg-lime-400 px-4 py-2 text-xs font-black tracking-wider text-black transition hover:bg-lime-300"
+                                    onClick={() =>
+                                        handleCambiarEstado(
+                                            'Reparacion Completa',
+                                            '¿Estás seguro de marcar como terminada la reparación?'
+                                        )
+                                    }
+                                >
+                                    TERMINAR REPARACIÓN
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+
             <ModalNuevaReparacion
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 equipoId={equipo.id}
+                equipoNombre={equipo.nombre}
+                equipoEstado={equipo.estado_id}
+                repuestos={repuestos}
+            />
+
+
+            <ModalEditarReparacion
+                isOpen={reparacionAEditar !== null}
+                onClose={() => setReparacionAEditar(null)}
+                reparacion={reparacionAEditar}
                 equipoNombre={equipo.nombre}
                 repuestos={repuestos}
             />

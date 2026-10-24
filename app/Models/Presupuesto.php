@@ -9,6 +9,7 @@ class Presupuesto extends Model
     protected $fillable = [
         'monto',
         'equipo_id',
+        'aprobado',
     ];
     //
     public function equipos()

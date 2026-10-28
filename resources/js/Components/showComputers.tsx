@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, FormEvent } from 'react';
 import { Eye, Pencil, PackageOpen, Calendar } from "lucide-react";
-import { router, Link } from '@inertiajs/react';
+import { router, Link, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import ProductFilters, { FilterOption } from './filter';
 
@@ -20,6 +20,7 @@ interface Computer {
     cliente_id: number;
     nombre: string;
     estado_id: number;
+    user_id: number;
     created_at?: string;
     updated_at?: string;
     cliente?: Cliente;
@@ -33,6 +34,17 @@ interface Estado {
     created_at?: string;
     updated_at?: string;
 }
+interface AuthUser {
+    id: number;
+    name: string;
+    email: string;
+}
+interface SharedPageProps {
+    auth: {
+        user: AuthUser;
+    };
+    [key: string]: any;
+}
 
 export default function ShowComputers() {
     const [computers, setComputers] = useState<Computer[]>([]);
@@ -43,6 +55,9 @@ export default function ShowComputers() {
     const [status, setStatus] = useState('');
     const [dni, setDni] = useState('');
     const [error, setError] = useState('');
+    const { auth } = usePage<SharedPageProps>().props;
+
+    const user = auth.user;
 
     useEffect(() => {
         getAllComputers();
@@ -76,6 +91,12 @@ export default function ShowComputers() {
         router.get('/equipos/create', { dni: dni.trim() });
     }
 
+    const filterByUser = useMemo(() => {
+        if (!user?.id) return [];
+
+        return computers.filter((comp) => comp.user_id === user.id);
+    }, [computers, user?.id]);
+
     // Filtrar la lista de computadoras en tiempo real según cliente, fecha de ingreso, nombre y estado
     const filteredComputers = useMemo(() => {
         return computers.filter((comp) => {
@@ -103,8 +124,17 @@ export default function ShowComputers() {
             }
 
             // Filtrar por estado
+            const estadoActual = comp.estado?.nombre?.trim().toLowerCase();
             if (status) {
-                if (comp.estado?.nombre !== status) return false;
+                // Si seleccionó un filtro explícito, debe coincidir exactamente
+                if (estadoActual !== status.trim().toLowerCase()) {
+                    return false;
+                }
+            } else {
+                // Por defecto (sin filtro seleccionado), ocultar los cancelados
+                if (estadoActual === 'cancelado') {
+                    return false;
+                }
             }
 
             return true;
@@ -126,7 +156,143 @@ export default function ShowComputers() {
 
     return (
         <section className="space-y-4">
-            {/* Barra de Filtros */}
+            <div className="overflow-hidden border border-[#292929] bg-[#0b0b0b]">
+                <div className="flex items-center justify-between border-b border-[#292929] px-7 py-5">
+                    <div className="flex items-center gap-4">
+                        <PackageOpen
+                            size={24}
+                            className="text-lime-400"
+                        />
+                        <h2 className="text-sm font-black tracking-[0.2em] text-gray-300">
+                            EQUIPOS ASIGNADOS
+                        </h2>
+                    </div>
+                </div>
+                {/* Tabla  de equipos con el tecncio asociado*/}
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[900px] border-collapse">
+                        <thead>
+                            <tr className="border-b border-[#292929] text-left">
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
+                                    ID
+                                </th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
+                                    CLIENTE
+                                </th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
+                                    NOMBRE
+                                </th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
+                                    FECHA INGRESO
+                                </th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
+                                    ESTADO
+                                </th>
+                                <th className="px-7 py-4 text-xs font-black tracking-widest text-gray-500">
+                                    ACCIONES
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {filterByUser.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="px-5 py-8 text-center text-sm text-gray-500">
+                                        No se encontraron equipos asignados a usted.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filterByUser.map((comp) => (
+                                    <tr key={comp.id} className="border-b border-[#202020] transition hover:bg-[#151515]">
+                                        <td className="px-5 py-4">
+                                            <p className="font-bold text-gray-100">
+                                                {comp.id}
+                                            </p>
+                                        </td>
+
+                                        <td className="px-5 py-4 text-sm text-gray-300">
+                                            {comp.cliente ? `${comp.cliente.nombre} ${comp.cliente.apellido}` : 'Sin cliente'}
+                                        </td>
+
+                                        <td className="px-5 py-4">
+                                            <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-black text-gray-200">
+                                                {comp.nombre}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-5 py-4 text-xs text-gray-400">
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <Calendar size={14} className="text-gray-500" />
+                                                {formatDate(comp.created_at)}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-5 py-4">
+                                            <span
+                                                className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black text-gray-100"
+                                                style={{
+                                                    backgroundColor: `${comp.estado?.color}15`,
+                                                    borderColor: `${comp.estado?.color}40`,
+                                                    color: comp.estado?.color,
+                                                }}
+                                            >
+                                                <span
+                                                    className="h-2 w-2 rounded-full"
+                                                    style={{
+                                                        backgroundColor: comp.estado?.color,
+                                                    }}
+                                                />
+
+                                                {comp.estado?.nombre}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-7 py-4">
+                                            <div className="flex gap-3">
+                                                <button
+                                                    className="
+                            flex items-center gap-2
+                            border border-[#333]
+                            px-4 py-2
+                            text-xs font-black
+                            text-gray-400
+                            transition
+                            hover:border-gray-500
+                            hover:text-white
+                            cursor-pointer
+                          "
+                                                >
+                                                    <Eye size={15} />
+                                                    VER
+                                                </button>
+
+                                                <button
+                                                    onClick={() => router.visit(route('equipos.edit', comp.id))}
+                                                    className="
+                            flex items-center gap-2
+                            border border-[#333]
+                            px-4 py-2
+                            text-xs font-black
+                            text-gray-400
+                            transition
+                            hover:border-lime-400
+                            hover:text-lime-400
+                            cursor-pointer
+                          "
+                                                >
+                                                    <Pencil size={15} />
+                                                    EDITAR
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <ProductFilters
                 search={search}
                 onSearchChange={setSearch}
@@ -150,7 +316,7 @@ export default function ShowComputers() {
                             className="text-lime-400"
                         />
                         <h2 className="text-sm font-black tracking-[0.2em] text-gray-300">
-                            PRODUCTOS / EQUIPOS
+                            TODOS LOS EQUIPOS
                         </h2>
                     </div>
 
@@ -158,8 +324,6 @@ export default function ShowComputers() {
                         Mostrando {filteredComputers.length} de {computers.length}
                     </span>
                 </div>
-
-                {/* Tabla */}
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[900px] border-collapse">
                         <thead>

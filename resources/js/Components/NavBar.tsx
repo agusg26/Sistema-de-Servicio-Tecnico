@@ -11,6 +11,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { useState } from "react";
 import { Route } from "lucide-react";
 import { link } from "fs";
+import UserAccountMenu from "@/Layouts/UserAccountMenu";
 
 
 
@@ -33,12 +34,12 @@ const menuItems = [
     {
         name: "REPORTES",
         icon: BarChart3,
-        link:"undefindes"
+        link: "undefindes"
     },
 ];
 
 export default function Navbar() {
-    const {url} = usePage();
+    const { url } = usePage();
     return (
         <header className="border border-[#292929] bg-[#0c0c0c]">
             <div className="flex h-16 items-center">
@@ -64,22 +65,22 @@ export default function Navbar() {
 
                         return (
                             <Link
-                            key = {item.name}
-                            href= {item.link}
+                                key={item.name}
+                                href={item.link}
                             >
-                            <button className={`
+                                <button className={`
                                         flex h-full items-center gap-3 border-r border-[#292929]
                                         px-7 text-sm font-black tracking-wider transition cursor-pointer
                                         ${isActive
-                                            ? "border-b-2 border-lime-400 text-lime-400 bg-[#151515]/50"
-                                            : "text-gray-400 hover:bg-[#151515] hover:text-white"
-                                        }
+                                        ? "border-b-2 border-lime-400 text-lime-400 bg-[#151515]/50"
+                                        : "text-gray-400 hover:bg-[#151515] hover:text-white"
+                                    }
                                     `}
-                            >
-                                <Icon size={20} />
-                                
-                                {item.name}
-                            </button></Link>
+                                >
+                                    <Icon size={20} />
+
+                                    {item.name}
+                                </button></Link>
                         );
                     })}
                 </nav>
@@ -90,12 +91,7 @@ export default function Navbar() {
                         className="text-gray-400 hover:text-white"
                     />
 
-                    <UserCircle
-                        size={27}
-                        className="text-gray-300"
-                    />
-
-                    <span className="text-gray-400">⌄</span>
+                    <UserAccountMenu />
                 </div>
             </div>
         </header>

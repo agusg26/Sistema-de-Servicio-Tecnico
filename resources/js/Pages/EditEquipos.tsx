@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect, useMemo } from 'react';
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import { MainLayout } from '@/Layouts/MainLayout';
 import ModalNuevaReparacion from '@/Components/ModalNuevaReparacion';
 import ModalEditarReparacion from '@/Components/ModalEditarReparacion';
@@ -41,7 +41,7 @@ interface User {
     id: number;
     name: string;
     email: string;
-    role: string;
+    role?: string;
 }
 
 interface Reparacion {
@@ -87,6 +87,15 @@ interface Props {
     users: User[];
 }
 
+interface SharedAuth {
+    user: {
+        id: number;
+        name: string;
+        email: string;
+        roles: string[];
+    };
+}
+
 export default function EditEquipos({
     equipo,
     estados = [],
@@ -96,6 +105,15 @@ export default function EditEquipos({
 }: Props) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [reparacionAEditar, setReparacionAEditar] = useState<Reparacion | null>(null);
+    const { auth } = usePage<{ auth: SharedAuth }>().props;
+
+    const hasRole = (...rolesPermitidos: string[]) => {
+        if (!auth.user?.roles) return false;
+        return rolesPermitidos.some((rol) => auth.user.roles.includes(rol));
+    };
+
+    // Es admin si tiene rol admin o super admin
+    const isAdmin = hasRole('admin', 'super admin');
 
     const {
         data: equipoData,
@@ -148,7 +166,7 @@ export default function EditEquipos({
 
     // Actualiza la reparación a presupuesto_aprobado = false y repuesto_id = null vía PUT
     const handleDeleteReparacion = (rep: Reparacion) => {
-        if (!confirm(`¿Estás seguro de quitar la reparacion "${rep.titulo}"?`)) {
+        if (!confirm(`¿Estás seguro de quitar la reparación "${rep.titulo}"?`)) {
             return;
         }
 
@@ -175,6 +193,18 @@ export default function EditEquipos({
     }, [reparaciones]);
 
     const montoPresupuesto = Number(equipo.presupuesto?.monto) || 0;
+
+    // Obtener nombres para la visualización de solo lectura del técnico
+    const estadoActualNombre =
+        estados.find((e) => e.id === equipoData.estado_id)?.nombre ||
+        equipo.estado?.nombre ||
+        'Sin estado';
+
+    const tecnicoAsignadoNombre =
+        users.find((u) => u.id === equipoData.user_id)?.name ||
+        equipo.tecnico?.name ||
+        equipo.user?.name ||
+        'Sin técnico asignado';
 
     return (
         <MainLayout>
@@ -259,21 +289,31 @@ export default function EditEquipos({
                                     )}
                                 </div>
 
+                                {/* ESTADO ACTUAL: SELECT PARA ADMIN, READONLY PARA TÉCNICO */}
                                 <div>
                                     <label className="mb-2 block text-xs font-black tracking-wider text-gray-400 uppercase">
-                                        Estado Actual <span className="text-lime-400">*</span>
+                                        Estado Actual
                                     </label>
-                                    <select
-                                        value={equipoData.estado_id}
-                                        onChange={(e) => setEquipoData('estado_id', Number(e.target.value))}
-                                        className="h-11 w-full border border-[#292929] bg-[#090909] px-4 text-sm text-white outline-none transition focus:border-lime-400 focus:ring-0"
-                                    >
-                                        {estados?.map((est) => (
-                                            <option key={est.id} value={est.id} className="bg-[#111111] text-white">
-                                                {est.nombre}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    {isAdmin ? (
+                                        <select
+                                            value={equipoData.estado_id}
+                                            onChange={(e) => setEquipoData('estado_id', Number(e.target.value))}
+                                            className="h-11 w-full border border-[#292929] bg-[#090909] px-4 text-sm text-white outline-none transition focus:border-lime-400 focus:ring-0"
+                                        >
+                                            {estados?.map((est) => (
+                                                <option key={est.id} value={est.id} className="bg-[#111111] text-white">
+                                                    {est.nombre}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <div className="flex h-11 w-full items-center border border-[#1f1f1f] bg-[#070707] px-4 text-sm text-gray-300">
+                                            <span className="inline-flex items-center gap-2 font-bold text-lime-400">
+                                                <span className="h-2 w-2 rounded-full bg-lime-400 animate-pulse"></span>
+                                                {estadoActualNombre}
+                                            </span>
+                                        </div>
+                                    )}
                                     {equipoErrors.estado_id && (
                                         <p className="mt-1.5 text-xs font-bold text-red-400">
                                             {equipoErrors.estado_id}
@@ -281,24 +321,33 @@ export default function EditEquipos({
                                     )}
                                 </div>
 
+                                {/* TÉCNICO ASIGNADO: SELECT PARA ADMIN, READONLY PARA TÉCNICO */}
                                 <div>
                                     <label className="mb-2 block text-xs font-black tracking-wider text-gray-400 uppercase">
-                                        Técnico Asignado <span className="text-lime-400">*</span>
+                                        Técnico Asignado
                                     </label>
-                                    <select
-                                        value={equipoData.user_id ?? ''}
-                                        onChange={(e) => setEquipoData('user_id', e.target.value ? Number(e.target.value) : '')}
-                                        className="h-11 w-full border border-[#292929] bg-[#090909] px-4 text-sm text-white outline-none transition focus:border-lime-400 focus:ring-0"
-                                    >
-                                        <option value="" className="bg-[#111111] text-gray-500">
-                                            Seleccionar técnico...
-                                        </option>
-                                        {users?.map((usr) => (
-                                            <option key={usr.id} value={usr.id} className="bg-[#111111] text-white">
-                                                {usr.name}
+                                    {isAdmin ? (
+                                        <select
+                                            value={equipoData.user_id ?? ''}
+                                            onChange={(e) => setEquipoData('user_id', e.target.value ? Number(e.target.value) : '')}
+                                            className="h-11 w-full border border-[#292929] bg-[#090909] px-4 text-sm text-white outline-none transition focus:border-lime-400 focus:ring-0"
+                                        >
+                                            <option value="" className="bg-[#111111] text-gray-500">
+                                                Seleccionar técnico...
                                             </option>
-                                        ))}
-                                    </select>
+                                            {users?.map((usr) => (
+                                                <option key={usr.id} value={usr.id} className="bg-[#111111] text-white">
+                                                    {usr.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <div className="flex h-11 w-full items-center border border-[#1f1f1f] bg-[#070707] px-4 text-sm text-gray-300">
+                                            <span className="font-semibold text-gray-200">
+                                                {tecnicoAsignadoNombre}
+                                            </span>
+                                        </div>
+                                    )}
                                     {equipoErrors.user_id && (
                                         <p className="mt-1.5 text-xs font-bold text-red-400">
                                             {equipoErrors.user_id}
@@ -496,7 +545,7 @@ export default function EditEquipos({
                 </div>
             </div>
 
-
+            {/* MODAL DE NUEVA REPARACIÓN */}
             <ModalNuevaReparacion
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
@@ -506,7 +555,7 @@ export default function EditEquipos({
                 repuestos={repuestos}
             />
 
-
+            {/* MODAL DE EDICIÓN DE REPARACIÓN */}
             <ModalEditarReparacion
                 isOpen={reparacionAEditar !== null}
                 onClose={() => setReparacionAEditar(null)}

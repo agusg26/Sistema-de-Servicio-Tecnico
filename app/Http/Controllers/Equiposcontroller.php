@@ -56,8 +56,6 @@ class Equiposcontroller extends Controller
                 $nuevoCliente = Cliente::create($validated['cliente']);
                 $clienteId = $nuevoCliente->id;
             }
-
-            // Creamos el equipo asignÃ¡ndole el ID del cliente reciÃ©n creado
             Equipo::create([
                 'cliente_id' => $clienteId,
                 'nombre' => $validated['equipo']['nombre'],
@@ -86,19 +84,27 @@ class Equiposcontroller extends Controller
 
     public function update(Request $request, Equipo $equipo)
     {
+        $user = $request->user();
+        $esAdmin = $user->hasRole(['admin', 'super admin']);
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'estado_id' => 'required|exists:estados,id',
             'user_id' => 'nullable|exists:users,id',
         ]);
 
-        if (
-            $validated['user_id'] != null &&
-            $validated['user_id'] != (int) $equipo->user_id &&
-            $equipo->estado_id != 2
-        ) {
-            $validated['estado_id'] = 2;
+        if (!$esAdmin) {
+            $validated['estado_id'] = $equipo->estado_id;
+            $validated['user_id'] = $equipo->user_id;
+        } else {
+            if (
+                $validated['user_id'] != null &&
+                $validated['user_id'] != (int) $equipo->user_id &&
+                $equipo->estado_id != 2
+            ) {
+                $validated['estado_id'] = 2;
+            }
         }
+
 
         $equipo->update($validated);
 

@@ -13,15 +13,26 @@ use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Role;
 
 class RegisteredUserController extends Controller
 {
     /**
      * Display the registration view.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Auth/Register');
+        /** @var User|null $currentUser */
+        $currentUser = $request->user();
+        if (! $currentUser || ! $currentUser->hasRole(['admin', 'super admin'])) {
+            abort(403, 'No tienes permiso para crear nuevos usuarios.');
+        }
+
+        $roles = Role::orderBy('id')->pluck('name')->values()->all();
+
+        return Inertia::render('Auth/Register', [
+            'roles' => ! empty($roles) ? $roles : ['tecnico', 'admin', 'super admin'],
+        ]);
     }
 
     /**
@@ -31,22 +42,30 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        /** @var User|null $currentUser */
+        $currentUser = $request->user();
+        if (! $currentUser || ! $currentUser->hasRole(['admin', 'super admin'])) {
+            abort(403, 'No tienes permiso para crear nuevos usuarios.');
+        }
+
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
+            'role' => 'required|string|exists:roles,name',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
         ]);
+
+        $user->assignRole($validated['role']);
 
         event(new Registered($user));
 
-        Auth::login($user);
-
-        return redirect(route('equipos.index', absolute: false));
+        return redirect(route('equipos.index', absolute: false))
+            ->with('success', 'Usuario creado y rol asignado correctamente.');
     }
 }

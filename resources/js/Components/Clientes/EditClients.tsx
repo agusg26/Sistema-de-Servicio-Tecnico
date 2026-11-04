@@ -7,6 +7,7 @@ interface Cliente {
     nombre: string;
     apellido: string;
     telefono: string;
+    email?: string | null;
     dni: string;
 }
 
@@ -21,6 +22,7 @@ export default function EditClients({ cliente, onClose }: Props) {
         nombre: cliente.nombre,
         apellido: cliente.apellido,
         telefono: cliente.telefono,
+        email: cliente.email,
         dni: cliente.dni,
     });
 
@@ -282,6 +284,44 @@ export default function EditClients({ cliente, onClose }: Props) {
                                     {errors.telefono}
                                 </p>
                             )}
+                        </div>
+                        <div>
+                            <label className="
+                                mb-2 block
+                                text-xs
+                                font-black
+                                tracking-wider
+                                text-gray-500
+                            ">
+                                EMAIL
+                            </label>
+                            <input
+                                type="text"
+                                value={data.email ?? ''}
+                                onChange={(e) => setData('email', e.target.value)}
+                                placeholder="correo@ejemplo.com"
+                                className="
+                                    h-12 w-full
+                                    border border-[#292929]
+                                    bg-[#090909]
+                                    px-4
+                                    text-sm text-white
+                                    outline-none
+                                    transition
+                                    focus:border-lime-400
+                                "
+                            />
+                            {errors.email && (
+                                <p className="
+                                    mt-2
+                                    text-xs
+                                    font-semibold
+                                    text-red-400
+                                ">
+                                    {errors.email}
+                                </p>
+                            )}
+
                         </div>
 
                     </div>

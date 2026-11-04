@@ -10,6 +10,10 @@ use App\Models\Equipo;
 use App\Models\Reparacion;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\PresupuestoMail;
+use App\Mail\EquipoListoRetiroMail;
 
 class Equiposcontroller extends Controller
 {
@@ -44,6 +48,7 @@ class Equiposcontroller extends Controller
             'cliente.apellido' => 'required_without:cliente_id|nullable|string|max:125',
             'cliente.dni' => 'required_without:cliente_id|nullable|string|max:20',
             'cliente.telefono' => 'required_without:cliente_id|nullable|string|max:50',
+            'cliente.email' => 'nullable|email|max:75',
 
 
             'equipo.nombre' => 'required|string|max:255',
@@ -69,10 +74,16 @@ class Equiposcontroller extends Controller
 
     public function show(Equipo $equipo) {}
 
-    public function edit(Equipo $equipo)
+    public function edit(Request $request, Equipo $equipo)
     {
+        /** @var User $user */
+        $user = $request->user();
+        if ($user->hasRole('tecnico') && !$user->hasRole(['admin', 'super admin'])) {
+            if ((int)$equipo->user_id !== (int)$user->id) {
+                abort(403, 'No tienes permiso para editar este equipo');
+            }
+        }
         $equipo->load(['cliente', 'estado', 'tecnico', 'presupuesto', 'reparaciones.repuesto']);
-
         return Inertia::render('EditEquipos', [
             'equipo' => $equipo,
             'estados' => Estado::all(),
@@ -84,20 +95,27 @@ class Equiposcontroller extends Controller
 
     public function update(Request $request, Equipo $equipo)
     {
+        /** @var User $user */
         $user = $request->user();
         $esAdmin = $user->hasRole(['admin', 'super admin']);
+        $esTecnicoAsignado = ((int) $user->id === (int) $equipo->user_id);
+
         $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'estado_id' => 'required|exists:estados,id',
-            'user_id' => 'nullable|exists:users,id',
+            'nombre'               => 'required|string|max:255',
+            'estado_id'            => 'required|exists:estados,id',
+            'user_id'              => 'nullable|exists:users,id',
+            'presupuesto_aprobado' => 'nullable|boolean',
         ]);
 
-        if (!$esAdmin) {
+        //Verificacion de rol de administrador o tecnico asignado para cambiar estado   
+        if (! $esAdmin && ! $esTecnicoAsignado) {
             $validated['estado_id'] = $equipo->estado_id;
-            $validated['user_id'] = $equipo->user_id;
+            $validated['user_id']   = $equipo->user_id;
         } else {
+            //si es admin y asigna un tecnico a un equipo en espera
             if (
-                $validated['user_id'] != null &&
+                $esAdmin &&
+                $validated['user_id'] !== null &&
                 $validated['user_id'] != (int) $equipo->user_id &&
                 $equipo->estado_id != 2
             ) {
@@ -105,15 +123,64 @@ class Equiposcontroller extends Controller
             }
         }
 
+        //Notificacion cuando el equipo se marca como terminado
+        if ($equipo->estado_id !== 5 && (int) $validated['estado_id'] === 5) {
+            $equipo->load(['cliente', 'presupuesto', 'tecnico']);
 
-        $equipo->update($validated);
+            if (! empty($equipo->cliente?->email)) {
+                Mail::to($equipo->cliente->email)->send(new EquipoListoRetiroMail($equipo));
+            }
+        }
 
-        return redirect()->route('equipos.index')->with('success', 'Equipo actualizado exitosamente.');
+        $equipo->update([
+            'nombre'    => $validated['nombre'],
+            'estado_id' => $validated['estado_id'],
+            'user_id'   => $validated['user_id'],
+        ]);
+
+        // Procesar aprobación del presupuesto 
+        if ($request->has('presupuesto_aprobado')) {
+            $aprobado = (bool) $request->input('presupuesto_aprobado');
+
+            if ($equipo->presupuesto) {
+                $equipo->presupuesto->update([
+                    'aprobado' => $aprobado,
+                ]);
+            } else {
+                $equipo->presupuesto()->create([
+                    'monto'    => 0,
+                    'aprobado' => $aprobado,
+                ]);
+            }
+        }
+
+
+        return redirect()->back()->with('success', 'Equipo y presupuesto actualizados correctamente.');
     }
 
     public function destroy(Equipo $equipo)
     {
         $equipo->delete();
         return redirect()->route('equipos.index')->with('success', 'Equipo eliminado exitosamente.');
+    }
+    public function notificarPresupuesto(Equipo $equipo)
+    {
+        $equipo->load(['cliente', 'reparaciones.repuesto', 'presupuesto']);
+
+        if (! $equipo->cliente || empty($equipo->cliente->email)) {
+            return redirect()->back()->withErrors([
+                'email' => 'El cliente no tiene un correo electrónico registrado.',
+            ]);
+        }
+
+        if ($equipo->reparaciones->isEmpty()) {
+            return redirect()->back()->withErrors([
+                'reparaciones' => 'No se puede enviar un presupuesto sin reparaciones registradas.',
+            ]);
+        }
+
+        Mail::to($equipo->cliente->email)->send(new PresupuestoMail($equipo));
+
+        return redirect()->back()->with('success', 'Presupuesto enviado exitosamente al cliente.');
     }
 }

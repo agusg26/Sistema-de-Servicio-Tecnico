@@ -7,7 +7,3 @@ use App\Models\Equipo;
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
-
-Route::get('/computers', function () {
-    return response()->json(Equipo::with('cliente', 'estado')->get());
-});

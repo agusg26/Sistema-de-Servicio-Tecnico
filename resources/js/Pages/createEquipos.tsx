@@ -13,6 +13,7 @@ interface Cliente {
     nombre: string;
     apellido: string;
     telefono: string;
+    email: string;
     dni: string;
 }
 
@@ -43,6 +44,7 @@ export default function CreateEquipos({
             apellido: clienteExistente ? clienteExistente.apellido : '',
             dni: initialDni,
             telefono: clienteExistente ? clienteExistente.telefono : '',
+            email: clienteExistente ? clienteExistente.email : '',
         },
 
         equipo: {
@@ -254,6 +256,35 @@ export default function CreateEquipos({
                                             setData('cliente', {
                                                 ...data.cliente,
                                                 telefono: e.target.value,
+                                            })
+                                        }
+                                        className="
+                                            h-12 w-full
+                                            border border-[#292929]
+                                            bg-[#090909]
+                                            px-4
+                                            text-sm text-white
+                                            outline-none
+                                            transition
+                                            focus:border-lime-400
+                                            disabled:cursor-not-allowed
+                                            disabled:bg-[#111111]
+                                            disabled:text-gray-500
+                                        "
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-xs font-black tracking-wider text-gray-500">
+                                        EMAIL
+                                    </label>
+                                    <input
+                                        type="text"
+                                        disabled={!!clienteExistente}
+                                        value={data.cliente.email}
+                                        onChange={(e) =>
+                                            setData('cliente', {
+                                                ...data.cliente,
+                                                email: e.target.value,
                                             })
                                         }
                                         className="

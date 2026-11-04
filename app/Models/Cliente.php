@@ -12,6 +12,7 @@ class Cliente extends Model
         'apellido',
         'telefono',
         'dni',
+        'email',
     ];
 
     public function equipos(): HasMany

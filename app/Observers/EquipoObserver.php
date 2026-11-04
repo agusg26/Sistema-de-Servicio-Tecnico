@@ -17,6 +17,7 @@ class EquipoObserver
         ]);
         $equipo->presupuesto()->create([
             'monto' => 0,
+            'aprobado' => null,
         ]);
     }
 

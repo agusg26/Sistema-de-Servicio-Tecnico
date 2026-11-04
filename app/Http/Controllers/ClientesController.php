@@ -58,6 +58,7 @@ class ClientesController extends Controller
             'nombre' => 'required|string|max:55',
             'apellido' => 'required|string|max:55',
             'telefono' => 'required|string|max:15',
+            'email' => 'nullable|email|max:55',
             'dni' => 'required|string|max:10',
         ]);
 

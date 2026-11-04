@@ -4,7 +4,7 @@ import { router, Link, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import ProductFilters, { FilterOption } from './filter';
 
-const endpoint = 'http://localhost:8080/api/computers';
+const endpoint = '/api/computers';
 
 interface Cliente {
     id: number;
@@ -34,11 +34,15 @@ interface Estado {
     created_at?: string;
     updated_at?: string;
 }
+
 interface AuthUser {
     id: number;
     name: string;
     email: string;
+    roles?: string[];
+    role?: string;
 }
+
 interface SharedPageProps {
     auth: {
         user: AuthUser;
@@ -50,7 +54,6 @@ export default function ShowComputers() {
     const [computers, setComputers] = useState<Computer[]>([]);
     const [search, setSearch] = useState('');
     const [clientName, setClientName] = useState('');
-    const [estadoName, setEstadoName] = useState<Estado[]>([]);
     const [date, setDate] = useState('');
     const [status, setStatus] = useState('');
     const [dni, setDni] = useState('');
@@ -58,6 +61,30 @@ export default function ShowComputers() {
     const { auth } = usePage<SharedPageProps>().props;
 
     const user = auth.user;
+
+    // Helper de roles flexible
+    const hasRole = (...rolesPermitidos: string[]) => {
+        if (!user) return false;
+        if (Array.isArray(user.roles)) {
+            const rolesLower = user.roles.map((r: any) =>
+                (typeof r === 'string' ? r : r.name || '').toLowerCase()
+            );
+            return rolesPermitidos.some((rol) => rolesLower.includes(rol.toLowerCase()));
+        }
+        if (typeof user.role === 'string') {
+            return rolesPermitidos.some((rol) => rol.toLowerCase() === user.role?.toLowerCase());
+        }
+        return false;
+    };
+
+    const isAdmin = hasRole('admin', 'super admin');
+
+    // Comprobar si puede editar un equipo específico
+    const puedeEditar = (equipoUserId: number | null) => {
+        if (isAdmin) return true;
+        if (hasRole('tecnico') && equipoUserId === user?.id) return true;
+        return false;
+    };
 
     useEffect(() => {
         getAllComputers();
@@ -72,14 +99,15 @@ export default function ShowComputers() {
         }
     };
 
-    // Extraer estados únicos para el selector de estado
+    // Extraer estados únicos directamente de los equipos recibidos
     const statusOptions: FilterOption[] = useMemo(() => {
-        const unique = Array.from(new Set(estadoName.map((e) => e.nombre).filter(Boolean)));
+        const nombres = computers.map((c) => c.estado?.nombre).filter(Boolean) as string[];
+        const unique = Array.from(new Set(nombres));
         return unique.map((est) => ({
-            label: est?.toUpperCase(),
+            label: est.toUpperCase(),
             value: est,
         }));
-    }, [estadoName]);
+    }, [computers]);
 
     const handleBuscar = (e: FormEvent) => {
         e.preventDefault();
@@ -89,18 +117,15 @@ export default function ShowComputers() {
         }
         setError('');
         router.get('/equipos/create', { dni: dni.trim() });
-    }
+    };
 
     const filterByUser = useMemo(() => {
         if (!user?.id) return [];
-
         return computers.filter((comp) => comp.user_id === user.id);
     }, [computers, user?.id]);
 
-    // Filtrar la lista de computadoras en tiempo real según cliente, fecha de ingreso, nombre y estado
     const filteredComputers = useMemo(() => {
         return computers.filter((comp) => {
-            // Filtrar por nombre de producto / equipo
             if (search.trim()) {
                 const term = search.toLowerCase();
                 const matchesName = comp.nombre?.toLowerCase().includes(term);
@@ -108,30 +133,24 @@ export default function ShowComputers() {
                 if (!matchesName && !matchesId) return false;
             }
 
-            // Filtrar por nombre de cliente
             if (clientName.trim()) {
                 const term = clientName.toLowerCase();
                 const fullName = `${comp.cliente?.nombre || ''} ${comp.cliente?.apellido || ''}`.toLowerCase();
                 if (!fullName.includes(term)) return false;
             }
 
-            // Filtrar por fecha de ingreso (created_at en formato YYYY-MM-DD)
             if (date) {
                 if (!comp.created_at) return false;
-                // comp.created_at suele ser ISO string tipo "2026-09-22T04:24:36.000000Z"
                 const itemDate = comp.created_at.slice(0, 10);
                 if (itemDate !== date) return false;
             }
 
-            // Filtrar por estado
             const estadoActual = comp.estado?.nombre?.trim().toLowerCase();
             if (status) {
-                // Si seleccionó un filtro explícito, debe coincidir exactamente
                 if (estadoActual !== status.trim().toLowerCase()) {
                     return false;
                 }
             } else {
-                // Por defecto (sin filtro seleccionado), ocultar los cancelados
                 if (estadoActual === 'cancelado') {
                     return false;
                 }
@@ -156,44 +175,28 @@ export default function ShowComputers() {
 
     return (
         <section className="space-y-4">
+            {/* TABLA: EQUIPOS ASIGNADOS AL USUARIO LOGUEADO */}
             <div className="overflow-hidden border border-[#292929] bg-[#0b0b0b]">
                 <div className="flex items-center justify-between border-b border-[#292929] px-7 py-5">
                     <div className="flex items-center gap-4">
-                        <PackageOpen
-                            size={24}
-                            className="text-lime-400"
-                        />
+                        <PackageOpen size={24} className="text-lime-400" />
                         <h2 className="text-sm font-black tracking-[0.2em] text-gray-300">
-                            EQUIPOS ASIGNADOS
+                            MIS EQUIPOS ASIGNADOS
                         </h2>
                     </div>
                 </div>
-                {/* Tabla  de equipos con el tecncio asociado*/}
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[900px] border-collapse">
                         <thead>
                             <tr className="border-b border-[#292929] text-left">
-                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                                    ID
-                                </th>
-                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                                    CLIENTE
-                                </th>
-                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                                    NOMBRE
-                                </th>
-                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                                    FECHA INGRESO
-                                </th>
-                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                                    ESTADO
-                                </th>
-                                <th className="px-7 py-4 text-xs font-black tracking-widest text-gray-500">
-                                    ACCIONES
-                                </th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">ID</th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">CLIENTE</th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">NOMBRE</th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">FECHA INGRESO</th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">ESTADO</th>
+                                <th className="px-7 py-4 text-xs font-black tracking-widest text-gray-500">ACCIONES</th>
                             </tr>
                         </thead>
-
                         <tbody>
                             {filterByUser.length === 0 ? (
                                 <tr>
@@ -204,81 +207,39 @@ export default function ShowComputers() {
                             ) : (
                                 filterByUser.map((comp) => (
                                     <tr key={comp.id} className="border-b border-[#202020] transition hover:bg-[#151515]">
-                                        <td className="px-5 py-4">
-                                            <p className="font-bold text-gray-100">
-                                                {comp.id}
-                                            </p>
-                                        </td>
-
+                                        <td className="px-5 py-4 font-bold text-gray-100">{comp.id}</td>
                                         <td className="px-5 py-4 text-sm text-gray-300">
                                             {comp.cliente ? `${comp.cliente.nombre} ${comp.cliente.apellido}` : 'Sin cliente'}
                                         </td>
-
-                                        <td className="px-5 py-4">
-                                            <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-black text-gray-200">
-                                                {comp.nombre}
-                                            </span>
-                                        </td>
-
+                                        <td className="px-5 py-4 text-xs font-black text-gray-200">{comp.nombre}</td>
                                         <td className="px-5 py-4 text-xs text-gray-400">
                                             <span className="inline-flex items-center gap-1.5">
                                                 <Calendar size={14} className="text-gray-500" />
                                                 {formatDate(comp.created_at)}
                                             </span>
                                         </td>
-
                                         <td className="px-5 py-4">
                                             <span
                                                 className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black text-gray-100"
                                                 style={{
-                                                    backgroundColor: `${comp.estado?.color}15`,
-                                                    borderColor: `${comp.estado?.color}40`,
-                                                    color: comp.estado?.color,
+                                                    backgroundColor: `${comp.estado?.color || '#888'}15`,
+                                                    borderColor: `${comp.estado?.color || '#888'}40`,
+                                                    color: comp.estado?.color || '#fff',
                                                 }}
                                             >
                                                 <span
                                                     className="h-2 w-2 rounded-full"
-                                                    style={{
-                                                        backgroundColor: comp.estado?.color,
-                                                    }}
+                                                    style={{ backgroundColor: comp.estado?.color || '#888' }}
                                                 />
-
-                                                {comp.estado?.nombre}
+                                                {comp.estado?.nombre || 'Sin estado'}
                                             </span>
                                         </td>
-
                                         <td className="px-7 py-4">
                                             <div className="flex gap-3">
                                                 <button
-                                                    className="
-                            flex items-center gap-2
-                            border border-[#333]
-                            px-4 py-2
-                            text-xs font-black
-                            text-gray-400
-                            transition
-                            hover:border-gray-500
-                            hover:text-white
-                            cursor-pointer
-                          "
-                                                >
-                                                    <Eye size={15} />
-                                                    VER
-                                                </button>
-
-                                                <button
+                                                    type="button"
                                                     onClick={() => router.visit(route('equipos.edit', comp.id))}
-                                                    className="
-                            flex items-center gap-2
-                            border border-[#333]
-                            px-4 py-2
-                            text-xs font-black
-                            text-gray-400
-                            transition
-                            hover:border-lime-400
-                            hover:text-lime-400
-                            cursor-pointer
-                          "
+                                                    className="flex items-center gap-2 border border-[#333] px-4 py-2 text-xs font-black text-gray-400 transition hover:border-lime-400 hover:text-lime-400 cursor-pointer"
                                                 >
                                                     <Pencil size={15} />
                                                     EDITAR
@@ -293,6 +254,7 @@ export default function ShowComputers() {
                 </div>
             </div>
 
+            {/* FILTROS */}
             <ProductFilters
                 search={search}
                 onSearchChange={setSearch}
@@ -306,20 +268,15 @@ export default function ShowComputers() {
                 onReset={handleReset}
             />
 
-            {/* Contenedor de la Tabla */}
+            {/* TABLA: TODOS LOS EQUIPOS */}
             <div className="overflow-hidden border border-[#292929] bg-[#0b0b0b]">
-                {/* Cabecera */}
                 <div className="flex items-center justify-between border-b border-[#292929] px-7 py-5">
                     <div className="flex items-center gap-4">
-                        <PackageOpen
-                            size={24}
-                            className="text-lime-400"
-                        />
+                        <PackageOpen size={24} className="text-lime-400" />
                         <h2 className="text-sm font-black tracking-[0.2em] text-gray-300">
                             TODOS LOS EQUIPOS
                         </h2>
                     </div>
-
                     <span className="text-xs font-bold text-gray-500">
                         Mostrando {filteredComputers.length} de {computers.length}
                     </span>
@@ -328,27 +285,14 @@ export default function ShowComputers() {
                     <table className="w-full min-w-[900px] border-collapse">
                         <thead>
                             <tr className="border-b border-[#292929] text-left">
-                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                                    ID
-                                </th>
-                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                                    CLIENTE
-                                </th>
-                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                                    NOMBRE
-                                </th>
-                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                                    FECHA INGRESO
-                                </th>
-                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                                    ESTADO
-                                </th>
-                                <th className="px-7 py-4 text-xs font-black tracking-widest text-gray-500">
-                                    ACCIONES
-                                </th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">ID</th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">CLIENTE</th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">NOMBRE</th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">FECHA INGRESO</th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">ESTADO</th>
+                                <th className="px-7 py-4 text-xs font-black tracking-widest text-gray-500">ACCIONES</th>
                             </tr>
                         </thead>
-
                         <tbody>
                             {filteredComputers.length === 0 ? (
                                 <tr>
@@ -359,85 +303,46 @@ export default function ShowComputers() {
                             ) : (
                                 filteredComputers.map((comp) => (
                                     <tr key={comp.id} className="border-b border-[#202020] transition hover:bg-[#151515]">
-                                        <td className="px-5 py-4">
-                                            <p className="font-bold text-gray-100">
-                                                {comp.id}
-                                            </p>
-                                        </td>
-
+                                        <td className="px-5 py-4 font-bold text-gray-100">{comp.id}</td>
                                         <td className="px-5 py-4 text-sm text-gray-300">
                                             {comp.cliente ? `${comp.cliente.nombre} ${comp.cliente.apellido}` : 'Sin cliente'}
                                         </td>
-
-                                        <td className="px-5 py-4">
-                                            <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-black text-gray-200">
-                                                {comp.nombre}
-                                            </span>
-                                        </td>
-
+                                        <td className="px-5 py-4 text-xs font-black text-gray-200">{comp.nombre}</td>
                                         <td className="px-5 py-4 text-xs text-gray-400">
                                             <span className="inline-flex items-center gap-1.5">
                                                 <Calendar size={14} className="text-gray-500" />
                                                 {formatDate(comp.created_at)}
                                             </span>
                                         </td>
-
                                         <td className="px-5 py-4">
                                             <span
                                                 className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black text-gray-100"
                                                 style={{
-                                                    backgroundColor: `${comp.estado?.color}15`,
-                                                    borderColor: `${comp.estado?.color}40`,
-                                                    color: comp.estado?.color,
+                                                    backgroundColor: `${comp.estado?.color || '#888'}15`,
+                                                    borderColor: `${comp.estado?.color || '#888'}40`,
+                                                    color: comp.estado?.color || '#fff',
                                                 }}
                                             >
                                                 <span
                                                     className="h-2 w-2 rounded-full"
-                                                    style={{
-                                                        backgroundColor: comp.estado?.color,
-                                                    }}
+                                                    style={{ backgroundColor: comp.estado?.color || '#888' }}
                                                 />
-
-                                                {comp.estado?.nombre}
+                                                {comp.estado?.nombre || 'Sin estado'}
                                             </span>
                                         </td>
-
                                         <td className="px-7 py-4">
                                             <div className="flex gap-3">
-                                                <button
-                                                    className="
-                            flex items-center gap-2
-                            border border-[#333]
-                            px-4 py-2
-                            text-xs font-black
-                            text-gray-400
-                            transition
-                            hover:border-gray-500
-                            hover:text-white
-                            cursor-pointer
-                          "
-                                                >
-                                                    <Eye size={15} />
-                                                    VER
-                                                </button>
-
-                                                <button
-                                                    onClick={() => router.visit(route('equipos.edit', comp.id))}
-                                                    className="
-                            flex items-center gap-2
-                            border border-[#333]
-                            px-4 py-2
-                            text-xs font-black
-                            text-gray-400
-                            transition
-                            hover:border-lime-400
-                            hover:text-lime-400
-                            cursor-pointer
-                          "
-                                                >
-                                                    <Pencil size={15} />
-                                                    EDITAR
-                                                </button>
+                                                {/* Botón Editar condicionado */}
+                                                {puedeEditar(comp.user_id) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => router.visit(route('equipos.edit', comp.id))}
+                                                        className="flex items-center gap-2 border border-[#333] px-4 py-2 text-xs font-black text-gray-400 transition hover:border-lime-400 hover:text-lime-400 cursor-pointer"
+                                                    >
+                                                        <Pencil size={15} />
+                                                        EDITAR
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -447,42 +352,25 @@ export default function ShowComputers() {
                     </table>
                 </div>
             </div>
+
+            {/* FORMULARIO BUSCADOR RÁPIDO DNI */}
             <div className="overflow-hidden border border-[#292929] bg-[#0b0b0b]">
                 <form onSubmit={handleBuscar} className="flex gap-2 p-2">
                     <input
                         type="text"
-                        name='dni'
+                        name="dni"
                         value={dni}
                         onChange={(e) => setDni(e.target.value)}
-                        placeholder='Ingrese el documento del cliente'
-                        className="         h-12
-                                            border border-[#292929]
-                                            bg-[#090909]
-                                            px-4
-                                            text-sm text-white
-                                            outline-none
-                                            transition
-                                            placeholder:text-gray-700
-                                            focus:border-lime-400
-                                            disabled:cursor-not-allowed
-                                            disabled:bg-[#111111]
-                                            disabled:text-gray-500"
+                        placeholder="Ingrese el documento del cliente"
+                        className="h-12 border border-[#292929] bg-[#090909] px-4 text-sm text-white outline-none transition placeholder:text-gray-700 focus:border-lime-400"
                     />
-                    <button type='submit'
-                        className='flex h-14 items-center justify-center gap-2
-            border border-lime-400
-            px-6
-            text-sm font-black tracking-wider
-            text-lime-400
-            transition
-            hover:bg-lime-400
-            hover:text-black
-            cursor-pointer'>
+                    <button
+                        type="submit"
+                        className="flex h-12 items-center justify-center gap-2 border border-lime-400 px-6 text-sm font-black tracking-wider text-lime-400 transition hover:bg-lime-400 hover:text-black cursor-pointer"
+                    >
                         NUEVO EQUIPO
                     </button>
-                    {error && (
-                        <p className="text-red-500 text-sm mt-1">{error}</p>
-                    )}
+                    {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
                 </form>
             </div>
         </section>

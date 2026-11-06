@@ -15,6 +15,6 @@ class Categoria_repuesto extends Model
 
     public function repuestos(): HasMany
     {
-        return $this->hasMany(Repuesto::class);
+        return $this->hasMany(Repuesto::class, 'categoria_repuesto_id');
     }
 }

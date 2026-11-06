@@ -20,7 +20,7 @@ class Repuesto extends Model
 
     public function categoria(): BelongsTo
     {
-        return $this->belongsTo(Categoria_repuesto::class);
+        return $this->belongsTo(Categoria_repuesto::class, 'categoria_repuesto_id');
     }
     public function reparaciones(): HasMany
     {

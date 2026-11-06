@@ -44,14 +44,14 @@ class Equiposcontroller extends Controller
         }
         $validated = $request->validate([
             'cliente_id' => 'nullable|exists:clientes,id',
-            'cliente.nombre' => 'required_without:cliente_id|nullable|string|max:125',
+            'cliente.nombre' => 'required_without:cliente_id|nullable|string|max:60',
             'cliente.apellido' => 'required_without:cliente_id|nullable|string|max:125',
             'cliente.dni' => 'required_without:cliente_id|nullable|string|max:20',
             'cliente.telefono' => 'required_without:cliente_id|nullable|string|max:50',
             'cliente.email' => 'nullable|email|max:75',
 
 
-            'equipo.nombre' => 'required|string|max:255',
+            'equipo.nombre' => 'required|string|max:60',
             'equipo.estado_id' => 'required|exists:estados,id',
         ]);
 
@@ -72,7 +72,21 @@ class Equiposcontroller extends Controller
         return redirect()->route('equipos.index')->with('success', 'Cliente y equipo registrados exitosamente.');
     }
 
-    public function show(Equipo $equipo) {}
+    public function show(Equipo $equipo)
+    {
+        $equipo->load([
+            'cliente',
+            'estado',
+            'tecnico',
+            'presupuesto',
+            'reparaciones.repuesto',
+            'historial.estado',
+        ]);
+
+        return Inertia::render('ShowEquipos', [
+            'equipo' => $equipo,
+        ]);
+    }
 
     public function edit(Request $request, Equipo $equipo)
     {

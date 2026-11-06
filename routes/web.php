@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Equiposcontroller;
 use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\Reparacionescontroller;
+use App\Http\Controllers\RepuestosController;
 use App\Models\Equipo;
 // Redirigir la raíz directamente al listado de equipos
 Route::get('/', function () {
@@ -25,7 +26,11 @@ Route::middleware(['auth', 'role:tecnico|admin|super admin'])->group(function ()
     });
     Route::post('/equipos/{equipo}/notificar-presupuesto', [Equiposcontroller::class, 'notificarPresupuesto'])
         ->name('equipos.notificarPresupuesto');
+
+
+    Route::resource('repuestos', RepuestosController::class)->names('repuestos')->middleware(['auth', 'role:tecnico|admin|super admin']);
 });
+
 
 
 require __DIR__ . '/auth.php';

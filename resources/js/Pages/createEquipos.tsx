@@ -146,12 +146,13 @@ export default function CreateEquipos({
 
                                     <input
                                         type="text"
+                                        maxLength={40}
                                         disabled={!!clienteExistente}
                                         value={data.cliente.nombre}
                                         onChange={(e) =>
                                             setData('cliente', {
                                                 ...data.cliente,
-                                                nombre: e.target.value,
+                                                nombre: e.target.value.slice(0, 40),
                                             })
                                         }
                                         className="
@@ -169,6 +170,13 @@ export default function CreateEquipos({
                                             disabled:text-gray-500
                                         "
                                     />
+
+                                    {errors['cliente.nombre'] && (
+                                        <div className="mt-2 flex items-center gap-2 text-xs font-semibold text-red-400">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                                            {errors['cliente.nombre']}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Apellido */}
@@ -342,11 +350,12 @@ export default function CreateEquipos({
 
                                     <input
                                         type="text"
+                                        maxLength={25}
                                         value={data.equipo.nombre}
                                         onChange={(e) =>
                                             setData('equipo', {
                                                 ...data.equipo,
-                                                nombre: e.target.value,
+                                                nombre: e.target.value.slice(0, 25),
                                             })
                                         }
                                         placeholder="Ej. Lenovo IdeaPad 3"

@@ -29,7 +29,7 @@ const menuItems = [
     {
         name: "REPUESTOS",
         icon: Boxes,
-        link: "undefinde"
+        link: "/repuestos"
     },
     {
         name: "REPORTES",

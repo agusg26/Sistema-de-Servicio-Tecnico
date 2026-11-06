@@ -238,6 +238,14 @@ export default function ShowComputers() {
                                             <div className="flex gap-3">
                                                 <button
                                                     type="button"
+                                                    onClick={() => router.visit(route('equipos.show', comp.id))}
+                                                    className="flex items-center gap-2 border border-[#333] px-4 py-2 text-xs font-black text-gray-400 transition hover:border-lime-400 hover:text-lime-400 cursor-pointer"
+                                                >
+                                                    <Eye size={15} />
+                                                    VER
+                                                </button>
+                                                <button
+                                                    type="button"
                                                     onClick={() => router.visit(route('equipos.edit', comp.id))}
                                                     className="flex items-center gap-2 border border-[#333] px-4 py-2 text-xs font-black text-gray-400 transition hover:border-lime-400 hover:text-lime-400 cursor-pointer"
                                                 >
@@ -332,6 +340,14 @@ export default function ShowComputers() {
                                         </td>
                                         <td className="px-7 py-4">
                                             <div className="flex gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => router.visit(route('equipos.show', comp.id))}
+                                                    className="flex items-center gap-2 border border-[#333] px-4 py-2 text-xs font-black text-gray-400 transition hover:border-lime-400 hover:text-lime-400 cursor-pointer"
+                                                >
+                                                    <Eye size={15} />
+                                                    VER
+                                                </button>
                                                 {/* Botón Editar condicionado */}
                                                 {puedeEditar(comp.user_id) && (
                                                     <button

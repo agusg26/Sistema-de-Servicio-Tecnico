@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PresupuestoMail;
 use App\Mail\EquipoListoRetiroMail;
+use App\Mail\ReparacionesComienzoEmail;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class Equiposcontroller extends Controller
 {
@@ -52,6 +54,7 @@ class Equiposcontroller extends Controller
 
 
             'equipo.nombre' => 'required|string|max:60',
+            'equipo.observaciones' => 'nullable|string|max:255',
             'equipo.estado_id' => 'required|exists:estados,id',
         ]);
 
@@ -64,6 +67,7 @@ class Equiposcontroller extends Controller
             Equipo::create([
                 'cliente_id' => $clienteId,
                 'nombre' => $validated['equipo']['nombre'],
+                'observaciones' => $validated['equipo']['observaciones'],
                 'estado_id' => $validated['equipo']['estado_id'],
                 'user_id' => null,
             ]);
@@ -116,22 +120,47 @@ class Equiposcontroller extends Controller
 
         $validated = $request->validate([
             'nombre'               => 'required|string|max:255',
+            'observaciones'        => 'nullable|string|max:255',
             'estado_id'            => 'required|exists:estados,id',
             'user_id'              => 'nullable|exists:users,id',
             'presupuesto_aprobado' => 'nullable|boolean',
         ]);
 
-        //Verificacion de rol de administrador o tecnico asignado para cambiar estado   
+        $estadoActual = (int) $equipo->estado_id;
+        $esCanceladoORetirado = in_array($estadoActual, [6, 7], true);
+
+        // Si está Cancelado (6) o Retirado (7), no se puede modificar ningún atributo del equipo
+        if ($esCanceladoORetirado) {
+            abort(403, 'El equipo se encuentra cancelado o retirado y no admite modificaciones.');
+        }
+
+        // Verificación de rol de administrador o técnico asignado para cambiar estado
         if (! $esAdmin && ! $esTecnicoAsignado) {
             $validated['estado_id'] = $equipo->estado_id;
             $validated['user_id']   = $equipo->user_id;
         } else {
-            //si es admin y asigna un tecnico a un equipo en espera
+            // Si no es admin, restringir transiciones según estado actual
+            if (! $esAdmin) {
+                $nuevoEstado = (int) $validated['estado_id'];
+
+                // Estado 1 (Pendiente de asignación): solo se puede cancelar (6)
+                if ($estadoActual === 1 && $nuevoEstado !== 1 && $nuevoEstado !== 6) {
+                    $validated['estado_id'] = $equipo->estado_id;
+                }
+
+                // Estado 5 (Reparación Completa): solo se puede pasar a Retirado (7) o Cancelado (6)
+                if ($estadoActual === 5 && ! in_array($nuevoEstado, [5, 6, 7], true)) {
+                    $validated['estado_id'] = $equipo->estado_id;
+                }
+            }
+
+            // Si es admin y asigna un técnico a un equipo en espera (estado 1)
             if (
                 $esAdmin &&
                 $validated['user_id'] !== null &&
                 $validated['user_id'] != (int) $equipo->user_id &&
-                $equipo->estado_id != 2
+                $estadoActual === 1 &&
+                (int) $validated['estado_id'] === 1
             ) {
                 $validated['estado_id'] = 2;
             }
@@ -148,6 +177,7 @@ class Equiposcontroller extends Controller
 
         $equipo->update([
             'nombre'    => $validated['nombre'],
+            'observaciones' => $validated['observaciones'],
             'estado_id' => $validated['estado_id'],
             'user_id'   => $validated['user_id'],
         ]);
@@ -156,15 +186,12 @@ class Equiposcontroller extends Controller
         if ($request->has('presupuesto_aprobado')) {
             $aprobado = (bool) $request->input('presupuesto_aprobado');
 
-            if ($equipo->presupuesto) {
-                $equipo->presupuesto->update([
-                    'aprobado' => $aprobado,
-                ]);
-            } else {
-                $equipo->presupuesto()->create([
-                    'monto'    => 0,
-                    'aprobado' => $aprobado,
-                ]);
+            if (is_null($equipo->presupuesto->aprobado) && $aprobado === true) {
+                $equipo->load(['cliente', 'tecnico', 'reparaciones']);
+
+                if (! empty($equipo->cliente?->email)) {
+                    Mail::to($equipo->cliente->email)->send(new ReparacionesComienzoEmail($equipo));
+                }
             }
         }
 
@@ -196,5 +223,15 @@ class Equiposcontroller extends Controller
         Mail::to($equipo->cliente->email)->send(new PresupuestoMail($equipo));
 
         return redirect()->back()->with('success', 'Presupuesto enviado exitosamente al cliente.');
+    }
+
+    public function descargarReporte(Equipo $equipo)
+    {
+        $equipo->load(['cliente', 'estado', 'tecnico', 'presupuesto', 'reparaciones.repuesto']);
+
+        $pdf = Pdf::loadView('pdf.orden_equipo', compact('equipo'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->stream("orden-servicio-{$equipo->id}.pdf");
     }
 }

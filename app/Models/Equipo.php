@@ -14,6 +14,7 @@ class Equipo extends Model
     protected $fillable = [
         'cliente_id',
         'nombre',
+        'observaciones',
         'estado_id',
         'user_id',
     ];

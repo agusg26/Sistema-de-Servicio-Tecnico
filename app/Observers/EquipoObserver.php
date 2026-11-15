@@ -28,9 +28,22 @@ class EquipoObserver
     {
         if ($equipo->wasChanged('estado_id')) {
             $equipo->historial()->create([
-                'estado_id' => $equipo->estado_id,
+                'estado_id'     => $equipo->estado_id,
                 'observaciones' => 'El estado del equipo ha cambiado.',
             ]);
+
+            if ($equipo->estado_id == 6) {
+                $equipo->presupuesto?->update(['aprobado' => false,]);
+                $equipo->reparaciones()
+                    ->where(function ($q) {
+                        $q->where('presupuesto_aprobado', '!=', false)
+                            ->orWhereNull('presupuesto_aprobado');
+                    })
+                    ->get()
+                    ->each(function ($reparacion) {
+                        $reparacion->update(['presupuesto_aprobado' => false]);
+                    });
+            }
         }
     }
 

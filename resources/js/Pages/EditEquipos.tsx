@@ -72,6 +72,7 @@ interface Cliente {
 interface Equipo {
     id: number;
     nombre: string;
+    observaciones?: string;
     estado_id: number;
     cliente_id?: number;
     cliente?: Cliente;
@@ -119,9 +120,24 @@ export default function EditEquipos({
 
     const isAdmin = hasRole('admin', 'super admin');
 
-
     const estadoPresupuesto = equipo.presupuesto?.aprobado;
     const [enviandoMail, setEnviandoMail] = useState(false);
+
+    // Reglas de negocio según el estado del equipo
+    const esPendienteAsignacion = Number(equipo.estado_id) === 1;
+    const tieneTecnicoAsignado = Boolean(equipo.user_id);
+    const esReparacionCompleta = Number(equipo.estado_id) === 5;
+    const esCancelado = Number(equipo.estado_id) === 6;
+    const esRetirado = Number(equipo.estado_id) === 7;
+    const esCanceladoORetirado = esCancelado || esRetirado;
+
+    // Solo se pueden agregar/editar/quitar reparaciones si tiene técnico, no está en estado 1, 5, 6 ni 7, y el presupuesto sigue abierto (null)
+    const puedeModificarReparaciones =
+        !esPendienteAsignacion &&
+        tieneTecnicoAsignado &&
+        !esReparacionCompleta &&
+        !esCanceladoORetirado &&
+        (estadoPresupuesto === null || estadoPresupuesto === undefined);
 
     const {
         data: equipoData,
@@ -132,6 +148,7 @@ export default function EditEquipos({
         recentlySuccessful: equipoSuccess,
     } = useForm({
         nombre: equipo.nombre || '',
+        observaciones: equipo.observaciones || '',
         estado_id: equipo.estado_id || (estados.length > 0 ? estados[0].id : 1),
         user_id: equipo.user_id ?? '',
     });
@@ -145,14 +162,7 @@ export default function EditEquipos({
         setEquipoData('estado_id', equipo.estado_id);
     }, [equipo.estado_id]);
 
-    const handleCambiarEstado = (nombreEstado: string, mensajeConfirmacion: string) => {
-        const estadoSeleccionado = estados.find(
-            (e) => e.nombre.toLowerCase() === nombreEstado.toLowerCase()
-        );
-        if (!estadoSeleccionado) {
-            alert(`No se encontró un estado con el nombre "${nombreEstado}"`);
-            return;
-        }
+    const handleCambiarEstado = (estadoId: number, mensajeConfirmacion: string) => {
         if (!confirm(mensajeConfirmacion)) {
             return;
         }
@@ -160,13 +170,14 @@ export default function EditEquipos({
             route('equipos.update', equipo.id),
             {
                 nombre: equipo.nombre,
-                estado_id: estadoSeleccionado.id,
+                observaciones: equipo.observaciones ?? '',
+                estado_id: estadoId,
                 user_id: equipo.user_id ?? '',
             },
             {
                 preserveScroll: true,
                 onSuccess: () => {
-                    setEquipoData('estado_id', estadoSeleccionado.id);
+                    setEquipoData('estado_id', estadoId);
                 },
             }
         );
@@ -186,6 +197,7 @@ export default function EditEquipos({
             route('equipos.update', equipo.id),
             {
                 nombre: equipo.nombre,
+                observaciones: equipo.observaciones ?? '',
                 estado_id: equipo.estado_id,
                 user_id: equipo.user_id ?? '',
                 presupuesto_aprobado: true,
@@ -341,15 +353,54 @@ export default function EditEquipos({
                                     </label>
                                     <input
                                         type="text"
+                                        maxLength={30}
+                                        disabled={esCanceladoORetirado}
                                         value={equipoData.nombre}
-                                        onChange={(e) => setEquipoData('nombre', e.target.value)}
+                                        onChange={(e) => setEquipoData('nombre', e.target.value.slice(0, 30))}
                                         placeholder="Ej. Notebook Asus ROG Zephyrus"
-                                        className="h-11 w-full border border-[#292929] bg-[#090909] px-4 text-sm text-white placeholder-gray-600 outline-none transition focus:border-lime-400 focus:ring-0"
+                                        className="h-11 w-full border border-[#292929] bg-[#090909] px-4 text-sm text-white placeholder-gray-600 outline-none transition focus:border-lime-400 focus:ring-0 disabled:cursor-not-allowed disabled:bg-[#111111] disabled:text-gray-500"
                                     />
                                     {equipoErrors.nombre && (
                                         <p className="mt-1.5 text-xs font-bold text-red-400">
                                             {equipoErrors.nombre}
                                         </p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-xs font-black tracking-wider text-gray-500">
+                                        OBSERVACIONES
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        maxLength={155}
+                                        disabled={esCanceladoORetirado}
+                                        value={equipoData.observaciones}
+                                        onChange={(e) =>
+                                            setEquipoData('observaciones', e.target.value.slice(0, 155))
+                                        }
+                                        placeholder="Descripcion del problema"
+                                        className="
+                                            h-12 w-full
+                                            border border-[#292929]
+                                            bg-[#090909]
+                                            px-4
+                                            text-sm text-white
+                                            outline-none
+                                            transition
+                                            placeholder:text-gray-700
+                                            focus:border-lime-400
+                                            disabled:cursor-not-allowed
+                                            disabled:bg-[#111111]
+                                            disabled:text-gray-500
+                                        "
+                                    />
+
+                                    {equipoErrors.observaciones && (
+                                        <div className="mt-2 flex items-center gap-2 text-xs font-semibold text-red-400">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                                            {equipoErrors.observaciones}
+                                        </div>
                                     )}
                                 </div>
 
@@ -358,7 +409,7 @@ export default function EditEquipos({
                                     <label className="mb-2 block text-xs font-black tracking-wider text-gray-400 uppercase">
                                         Estado Actual
                                     </label>
-                                    {isAdmin ? (
+                                    {isAdmin && !esCanceladoORetirado ? (
                                         <select
                                             value={equipoData.estado_id}
                                             onChange={(e) => setEquipoData('estado_id', Number(e.target.value))}
@@ -390,7 +441,7 @@ export default function EditEquipos({
                                     <label className="mb-2 block text-xs font-black tracking-wider text-gray-400 uppercase">
                                         Técnico Asignado
                                     </label>
-                                    {isAdmin ? (
+                                    {isAdmin && !esCanceladoORetirado ? (
                                         <select
                                             value={equipoData.user_id ?? ''}
                                             onChange={(e) => setEquipoData('user_id', e.target.value ? Number(e.target.value) : '')}
@@ -438,16 +489,18 @@ export default function EditEquipos({
                                     </div>
                                 </div>
 
-                                <div className="pt-2">
-                                    <button
-                                        type="submit"
-                                        disabled={equipoProcessing}
-                                        className="flex w-full items-center justify-center gap-2 bg-gray-700 px-6 py-3 text-xs font-black tracking-wider text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        <Save size={16} />
-                                        {equipoProcessing ? 'GUARDANDO...' : 'GUARDAR CAMBIOS DEL EQUIPO'}
-                                    </button>
-                                </div>
+                                {!esCanceladoORetirado && (
+                                    <div className="pt-2">
+                                        <button
+                                            type="submit"
+                                            disabled={equipoProcessing}
+                                            className="flex w-full items-center justify-center gap-2 bg-gray-700 px-6 py-3 text-xs font-black tracking-wider text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            <Save size={16} />
+                                            {equipoProcessing ? 'GUARDANDO...' : 'GUARDAR CAMBIOS DEL EQUIPO'}
+                                        </button>
+                                    </div>
+                                )}
                             </form>
                         </div>
                     </div>
@@ -466,8 +519,8 @@ export default function EditEquipos({
                                     </span>
                                 </div>
 
-                                {/* Si el presupuesto está aprobado o rechazado, no se pueden sumar más reparaciones */}
-                                {estadoPresupuesto === null ? (
+                                {/* Solo se pueden agregar reparaciones si hay técnico asignado, no está en estado 1, 5, 6 ni 7, y el presupuesto está en null */}
+                                {puedeModificarReparaciones ? (
                                     <button
                                         type="button"
                                         onClick={() => setIsModalOpen(true)}
@@ -476,9 +529,9 @@ export default function EditEquipos({
                                         <Plus size={16} />
                                         AGREGAR REPARACIÓN
                                     </button>
-                                ) : (
+                                ) : !tieneTecnicoAsignado || esPendienteAsignacion ? null : (
                                     <span className="flex items-center gap-1.5 text-xs text-gray-500 font-semibold">
-                                        <Lock size={14} /> Presupuesto bloqueado
+                                        <Lock size={14} /> Edición de reparaciones bloqueada
                                     </span>
                                 )}
                             </div>
@@ -493,9 +546,11 @@ export default function EditEquipos({
                                             No hay reparaciones aprobadas o registradas
                                         </h3>
                                         <p className="mt-1 text-xs text-gray-500 max-w-sm mx-auto">
-                                            Este equipo aún no posee intervenciones técnicas cargadas.
+                                            {!tieneTecnicoAsignado || esPendienteAsignacion
+                                                ? 'Asigná un técnico al equipo para poder cargar reparaciones.'
+                                                : 'Este equipo aún no posee intervenciones técnicas cargadas.'}
                                         </p>
-                                        {estadoPresupuesto === null && (
+                                        {puedeModificarReparaciones && (
                                             <button
                                                 type="button"
                                                 onClick={() => setIsModalOpen(true)}
@@ -525,8 +580,8 @@ export default function EditEquipos({
                                                             ${Number(rep.costo).toLocaleString('es-AR')}
                                                         </span>
 
-                                                        {/* Acciones de edición y eliminación: solo si NO está evaluado */}
-                                                        {estadoPresupuesto === null && (
+                                                        {/* Acciones de edición y eliminación: solo si puedeModificarReparaciones */}
+                                                        {puedeModificarReparaciones && (
                                                             <>
                                                                 <button
                                                                     type="button"
@@ -596,71 +651,118 @@ export default function EditEquipos({
                                 )}
                             </div>
 
-                            {/* BARRA INFERIOR DE ACCIONES */}
-                            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#1f1f1f] bg-[#0c0c0c] p-4">
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        handleCambiarEstado(
-                                            'Cancelado',
-                                            '¿Estás seguro de cancelar la reparación del equipo?'
-                                        )
-                                    }
-                                    className="inline-flex items-center gap-2 bg-red-400 px-4 py-2 text-xs font-black tracking-wider text-black transition hover:bg-red-300"
-                                >
-                                    CANCELAR REPARACIÓN
-                                </button>
-
-                                {/* 1. Si está en borrador: mostrar botón de Aprobar */}
-                                {estadoPresupuesto === null && (
-                                    <div className="flex items-center gap-2">
+                            {/* BARRA INFERIOR DE ACCIONES SEGÚN REGLAS DE ESTADO */}
+                            {!esCanceladoORetirado && (
+                                <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[#1f1f1f] bg-[#0c0c0c] p-4">
+                                    {/* Estado 1 (Pendiente de asignación) o sin técnico: Solo se puede cancelar el equipo */}
+                                    {esPendienteAsignacion || !tieneTecnicoAsignado ? (
                                         <button
                                             type="button"
-                                            onClick={handleEnviarNotificacion}
-                                            disabled={enviandoMail || reparacionesVisibles.length === 0}
-                                            className="inline-flex items-center gap-2 bg-blue-600 px-4 py-2 text-xs font-black tracking-wider text-white transition hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            onClick={() =>
+                                                handleCambiarEstado(
+                                                    6,
+                                                    '¿Estás seguro de cancelar el equipo?'
+                                                )
+                                            }
+                                            className="inline-flex items-center gap-2 bg-red-400 px-4 py-2 text-xs font-black tracking-wider text-black transition hover:bg-red-300"
                                         >
-                                            <Mail size={15} />
-                                            {enviandoMail ? 'ENVIANDO...' : 'NOTIFICAR PRESUPUESTO (MAIL)'}
+                                            CANCELAR EQUIPO
                                         </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleAprobarPresupuesto}
-                                            disabled={reparacionesVisibles.length === 0}
-                                            className="inline-flex items-center gap-2 bg-amber-400 px-4 py-2 text-xs font-black tracking-wider text-black transition hover:bg-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <CheckCircle size={15} />
-                                            APROBAR PRESUPUESTO (EN LOCAL)
-                                        </button>
-                                    </div>
-                                )}
+                                    ) : esReparacionCompleta ? (
+                                        /* Estado 5 (Reparación Completa): Solo botón para marcar como retirado (id 7) o cancelar (id 6) */
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleCambiarEstado(
+                                                        6,
+                                                        '¿Estás seguro de cancelar el equipo?'
+                                                    )
+                                                }
+                                                className="inline-flex items-center gap-2 bg-red-400 px-4 py-2 text-xs font-black tracking-wider text-black transition hover:bg-red-300"
+                                            >
+                                                CANCELAR EQUIPO
+                                            </button>
 
-                                {/* 2. ÚNICAMENTE si está APROBADO: mostrar botón de Terminar */}
-                                {estadoPresupuesto === true && equipo.estado_id !== 5 && (
-                                    <button
-                                        type="button"
-                                        className="inline-flex items-center gap-2 bg-lime-400 px-4 py-2 text-xs font-black tracking-wider text-black transition hover:bg-lime-300"
-                                        onClick={() =>
-                                            handleCambiarEstado(
-                                                'Reparacion Completa',
-                                                equipo.cliente?.email
-                                                    ? `¿Confirmar finalización? Se enviará un email a ${equipo.cliente.email} notificando el retiro.`
-                                                    : '¿Estás seguro de marcar como terminada la reparación?'
-                                            )
-                                        }
-                                    >
-                                        TERMINAR REPARACIÓN
-                                    </button>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleCambiarEstado(
+                                                        7,
+                                                        '¿Confirmar que el equipo fue retirado por el cliente?'
+                                                    )
+                                                }
+                                                className="inline-flex items-center gap-2 bg-lime-400 px-4 py-2 text-xs font-black tracking-wider text-black transition hover:bg-lime-300"
+                                            >
+                                                <CheckCircle2 size={15} />
+                                                MARCAR COMO RETIRADO
+                                            </button>
+                                        </>
+                                    ) : (
+                                        /* Estados intermedios (2, 3, 4) con técnico asignado */
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleCambiarEstado(
+                                                        6,
+                                                        '¿Estás seguro de cancelar la reparación del equipo?'
+                                                    )
+                                                }
+                                                className="inline-flex items-center gap-2 bg-red-400 px-4 py-2 text-xs font-black tracking-wider text-black transition hover:bg-red-300"
+                                            >
+                                                CANCELAR REPARACIÓN
+                                            </button>
 
-                                )}
+                                            {estadoPresupuesto === null && (
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleEnviarNotificacion}
+                                                        disabled={enviandoMail || reparacionesVisibles.length === 0}
+                                                        className="inline-flex items-center gap-2 bg-blue-600 px-4 py-2 text-xs font-black tracking-wider text-white transition hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        <Mail size={15} />
+                                                        {enviandoMail ? 'ENVIANDO...' : 'NOTIFICAR PRESUPUESTO (MAIL)'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleAprobarPresupuesto}
+                                                        disabled={reparacionesVisibles.length === 0}
+                                                        className="inline-flex items-center gap-2 bg-amber-400 px-4 py-2 text-xs font-black tracking-wider text-black transition hover:bg-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        <CheckCircle size={15} />
+                                                        APROBAR PRESUPUESTO (EN LOCAL)
+                                                    </button>
+                                                </div>
+                                            )}
 
-                                {/* 3. Si está RECHAZADO: mostrar aviso estático sin botón de finalizar */}
-                                {estadoPresupuesto === false && (
-                                    <span className="flex items-center gap-1.5 text-xs text-red-400 font-bold uppercase tracking-wider">
-                                        <Lock size={14} /> Reparación cancelada
-                                    </span>
-                                )}
-                            </div>
+                                            {estadoPresupuesto === true && (
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center gap-2 bg-lime-400 px-4 py-2 text-xs font-black tracking-wider text-black transition hover:bg-lime-300"
+                                                    onClick={() =>
+                                                        handleCambiarEstado(
+                                                            5,
+                                                            equipo.cliente?.email
+                                                                ? `¿Confirmar finalización? Se enviará un email a ${equipo.cliente.email} notificando el retiro.`
+                                                                : '¿Estás seguro de marcar como terminada la reparación?'
+                                                        )
+                                                    }
+                                                >
+                                                    TERMINAR REPARACIÓN
+                                                </button>
+                                            )}
+
+                                            {estadoPresupuesto === false && (
+                                                <span className="flex items-center gap-1.5 text-xs text-red-400 font-bold uppercase tracking-wider">
+                                                    <Lock size={14} /> Reparación cancelada
+                                                </span>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

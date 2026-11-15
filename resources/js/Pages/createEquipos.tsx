@@ -49,6 +49,7 @@ export default function CreateEquipos({
 
         equipo: {
             nombre: '',
+            observaciones: '',
             estado_id: 1,
         },
     });
@@ -376,6 +377,42 @@ export default function CreateEquipos({
                                         <div className="mt-2 flex items-center gap-2 text-xs font-semibold text-red-400">
                                             <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
                                             {errors['equipo.nombre']}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-xs font-black tracking-wider text-gray-500">
+                                        OBSERVACIONES
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        maxLength={155}
+                                        value={data.equipo.observaciones}
+                                        onChange={(e) =>
+                                            setData('equipo', {
+                                                ...data.equipo,
+                                                observaciones: e.target.value.slice(0, 155),
+                                            })
+                                        }
+                                        placeholder="Descripcion del problema"
+                                        className="
+                                            h-12 w-full
+                                            border border-[#292929]
+                                            bg-[#090909]
+                                            px-4
+                                            text-sm text-white
+                                            outline-none
+                                            transition
+                                            placeholder:text-gray-700
+                                            focus:border-lime-400
+                                        "
+                                    />
+
+                                    {errors['equipo.observaciones'] && (
+                                        <div className="mt-2 flex items-center gap-2 text-xs font-semibold text-red-400">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                                            {errors['equipo.observaciones']}
                                         </div>
                                     )}
                                 </div>

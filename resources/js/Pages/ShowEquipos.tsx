@@ -12,6 +12,7 @@ import {
     CreditCard,
     Pencil,
     History,
+    Package,
 } from 'lucide-react';
 
 interface Estado {
@@ -41,6 +42,25 @@ interface Presupuesto {
     aprobado: boolean | null;
 }
 
+interface Repuesto {
+    id: number;
+    nombre: string;
+    marca?: string;
+    precio_unitario?: number;
+}
+
+interface Reparacion {
+    id: number;
+    equipo_id: number;
+    titulo: string;
+    descripcion?: string | null;
+    costo: number;
+    repuesto_id: number | null;
+    presupuesto_aprobado?: boolean | null;
+    created_at?: string;
+    repuesto?: Repuesto | null;
+}
+
 interface HistorialEstadoItem {
     id: number;
     equipo_id: number;
@@ -62,6 +82,7 @@ interface Equipo {
     estado?: Estado;
     tecnico?: Tecnico | null;
     presupuesto?: Presupuesto | null;
+    reparaciones?: Reparacion[];
     historial?: HistorialEstadoItem[];
 }
 
@@ -175,6 +196,7 @@ export default function ShowEquipos({ equipo }: Props) {
     };
 
     const historial = equipo.historial ?? [];
+    const reparaciones = equipo.reparaciones ?? [];
     const estadoPresupuesto = equipo.presupuesto?.aprobado;
     const montoPresupuesto = Number(equipo.presupuesto?.monto) || 0;
 
@@ -367,6 +389,107 @@ export default function ShowEquipos({ equipo }: Props) {
                     </DetailPanel>
                 </div>
 
+                {/* REPARACIONES ASIGNADAS AL EQUIPO */}
+                <DetailPanel title="Reparaciones asignadas al equipo">
+                    {reparaciones.length === 0 ? (
+                        <div className="px-4 py-12 text-center">
+                            <Wrench
+                                size={26}
+                                className="mx-auto mb-3 text-gray-600"
+                            />
+
+                            <h3 className="text-sm font-bold text-gray-300">
+                                Sin reparaciones registradas
+                            </h3>
+
+                            <p className="mt-1 text-xs text-gray-500">
+                                Este equipo no posee reparaciones asociadas.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="px-4">
+                            {reparaciones.map((rep) => {
+                                const esCancelada =
+                                    rep.presupuesto_aprobado === false;
+
+                                return (
+                                    <div
+                                        key={rep.id}
+                                        className={`grid grid-cols-1 gap-3 border-b border-[#252525] py-4 last:border-b-0 sm:grid-cols-[1fr_auto_150px_180px] sm:items-center ${
+                                            esCancelada ? 'opacity-65' : ''
+                                        }`}
+                                    >
+                                        {/* TÍTULO, DESCRIPCIÓN Y ESTADO */}
+                                        <div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span
+                                                    className={`text-sm font-bold ${
+                                                        esCancelada
+                                                            ? 'line-through text-gray-400'
+                                                            : 'text-gray-100'
+                                                    }`}
+                                                >
+                                                    {rep.titulo}
+                                                </span>
+
+                                                {esCancelada ? (
+                                                    <span className="border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-red-400">
+                                                        Cancelada
+                                                    </span>
+                                                ) : (
+                                                    <span className="border border-lime-400/40 bg-lime-400/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-lime-400">
+                                                        Activa
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {rep.descripcion && (
+                                                <p className="mt-1 text-xs text-gray-400">
+                                                    {rep.descripcion}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* REPUESTO */}
+                                        <div className="text-xs text-gray-400">
+                                            {rep.repuesto ? (
+                                                <span className="inline-flex items-center gap-1.5 border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 font-semibold text-blue-400">
+                                                    <Package size={13} />
+                                                    {rep.repuesto.nombre}
+                                                </span>
+                                            ) : (
+                                                <span className="italic text-gray-600">
+                                                    Sin repuesto
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* COSTO */}
+                                        <div
+                                            className={`font-mono text-sm font-black sm:text-right ${
+                                                esCancelada
+                                                    ? 'line-through text-red-400'
+                                                    : 'text-lime-400'
+                                            }`}
+                                        >
+                                            ${Number(rep.costo).toLocaleString('es-AR')}
+                                        </div>
+
+                                        {/* FECHA */}
+                                        <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 sm:justify-end">
+                                            <Clock
+                                                size={13}
+                                                className="shrink-0 text-lime-400"
+                                            />
+                                            {formatDateTime(rep.created_at)}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </DetailPanel>
+
                 {/* HISTORIAL DE ESTADOS */}
                 <DetailPanel title="Historial de estados del equipo">
                     {historial.length === 0 ? (
@@ -443,7 +566,16 @@ export default function ShowEquipos({ equipo }: Props) {
                             })}
                         </div>
                     )}
+
                 </DetailPanel>
+                <a
+                    href={`/equipos/${equipo.id}/reporte`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 border border-[#292929] bg-[#141414] px-4 py-2.5 text-xs font-black tracking-wider text-gray-300 transition hover:border-lime-400 hover:text-white"
+                >
+                    IMPRIMIR ORDEN (PDF)
+                </a>
             </div>
         </MainLayout>
     );

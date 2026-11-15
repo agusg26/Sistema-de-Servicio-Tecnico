@@ -45,15 +45,28 @@ class Reparacionescontroller extends Controller
             'presupuesto_aprobado' => 'nullable|boolean',
         ]);
 
+        $equipo = Equipo::findOrFail($validated['equipo_id']);
+
+        if ((int) $equipo->estado_id === 1 || $equipo->user_id === null) {
+            return redirect()->back()->withErrors([
+                'reparaciones' => 'No se pueden agregar reparaciones si no hay un técnico asignado.',
+            ]);
+        }
+
+        if (in_array((int) $equipo->estado_id, [5, 6, 7], true)) {
+            return redirect()->back()->withErrors([
+                'reparaciones' => 'No se pueden agregar reparaciones en el estado actual del equipo.',
+            ]);
+        }
+
         $validated['costo'] = (int) round((float) $validated['costo']);
 
         if (!isset($validated['presupuesto_aprobado'])) {
             $validated['presupuesto_aprobado'] = true;
         }
 
-        DB::transaction(function () use ($validated) {
+        DB::transaction(function () use ($validated, $equipo) {
             Reparacion::create($validated);
-            $equipo = Equipo::findOrFail($validated['equipo_id']);
             if ($equipo->estado_id !== 4) {
                 $equipo->update(['estado_id' => 4]);
             }
@@ -84,6 +97,18 @@ class Reparacionescontroller extends Controller
 
     public function update(Request $request, Reparacion $reparacion)
     {
+        $equipo = $reparacion->equipo;
+        if (
+            ! $equipo ||
+            (int) $equipo->estado_id === 1 ||
+            $equipo->user_id === null ||
+            in_array((int) $equipo->estado_id, [5, 6, 7], true)
+        ) {
+            return redirect()->back()->withErrors([
+                'reparaciones' => 'No se pueden modificar reparaciones en el estado actual del equipo.',
+            ]);
+        }
+
         Log::info('--- UPDATE REPARACION ---');
         Log::info('ID recibido en ruta:', ['id' => $reparacion->id]);
         Log::info('Payload recibido:', $request->all());
@@ -107,6 +132,18 @@ class Reparacionescontroller extends Controller
      */
     public function destroy(Reparacion $reparacion)
     {
+        $equipo = $reparacion->equipo;
+        if (
+            ! $equipo ||
+            (int) $equipo->estado_id === 1 ||
+            $equipo->user_id === null ||
+            in_array((int) $equipo->estado_id, [5, 6, 7], true)
+        ) {
+            return redirect()->back()->withErrors([
+                'reparaciones' => 'No se pueden eliminar reparaciones en el estado actual del equipo.',
+            ]);
+        }
+
         $reparacion->delete();
 
         return redirect()->back()->with('success', 'Reparación eliminada exitosamente.');

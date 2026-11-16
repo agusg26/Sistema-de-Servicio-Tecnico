@@ -196,10 +196,10 @@ export default function EditEquipos({
         router.put(
             route('equipos.update', equipo.id),
             {
-                nombre: equipo.nombre,
-                observaciones: equipo.observaciones ?? '',
-                estado_id: equipo.estado_id,
-                user_id: equipo.user_id ?? '',
+                nombre: equipoData.nombre || equipo.nombre,
+                observaciones: equipoData.observaciones ?? equipo.observaciones ?? '',
+                estado_id: Number(equipoData.estado_id || equipo.estado_id),
+                user_id: equipoData.user_id !== '' ? Number(equipoData.user_id) : (equipo.user_id ?? null),
                 presupuesto_aprobado: true,
             },
             {

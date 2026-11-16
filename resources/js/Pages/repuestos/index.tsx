@@ -271,7 +271,7 @@ export default function RepuestosIndex({
 
                         {/* Botón Limpiar Filtros / Nuevo Repuesto */}
                         <div className="flex items-center">
-                            {hasActiveFilters ? (
+                            {hasActiveFilters && (
                                 <button
                                     type="button"
                                     onClick={handleResetFilters}
@@ -281,7 +281,8 @@ export default function RepuestosIndex({
                                     <RotateCcw size={16} />
                                     LIMPIAR
                                 </button>
-                            ) : (
+                            )}
+                            {isAdmin && (
                                 <Link
                                     href={route('repuestos.create')}
                                     className="flex h-14 w-full items-center justify-center gap-2 border border-lime-400 px-6 text-sm font-black tracking-wider text-lime-400 transition hover:bg-lime-400 hover:text-black cursor-pointer"
@@ -310,7 +311,8 @@ export default function RepuestosIndex({
                                 Mostrando {filteredRepuestos.length} de {repuestos.length}
                             </span>
 
-                            {hasActiveFilters && (
+                            {hasActiveFilters && isAdmin && (
+
                                 <Link
                                     href={route('repuestos.create')}
                                     className="flex items-center gap-2 border border-lime-400 px-4 py-2 text-xs font-black tracking-wider text-lime-400 transition hover:bg-lime-400 hover:text-black cursor-pointer"

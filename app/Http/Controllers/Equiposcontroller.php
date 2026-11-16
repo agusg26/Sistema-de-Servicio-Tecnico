@@ -23,7 +23,8 @@ class Equiposcontroller extends Controller
     public function index()
     {
         return Inertia::render('Equipos', [
-            'equipos' => Equipo::with(['cliente', 'estado'])->get()
+            'equipos' => Equipo::with(['cliente', 'estado'])->get(),
+            ...DashBoardController::getDashBoardData(),
         ]);
     }
 
@@ -183,14 +184,27 @@ class Equiposcontroller extends Controller
         ]);
 
         // Procesar aprobación del presupuesto 
-        if ($request->has('presupuesto_aprobado')) {
+        if (
+            $request->has('presupuesto_aprobado') && $request->input('presupuesto_aprobado') !== null
+            && (int) $equipo->estado_id !== 6
+        ) {
             $aprobado = (bool) $request->input('presupuesto_aprobado');
+            $estabaPendiente = is_null($equipo->presupuesto?->aprobado);
 
-            if (is_null($equipo->presupuesto->aprobado) && $aprobado === true) {
+            if ($equipo->presupuesto) {
+                $equipo->presupuesto->update([
+                    'aprobado' => $aprobado,
+                ]);
+            }
+
+            if ($estabaPendiente && $aprobado === true) {
                 $equipo->load(['cliente', 'tecnico', 'reparaciones']);
 
                 if (! empty($equipo->cliente?->email)) {
-                    Mail::to($equipo->cliente->email)->send(new ReparacionesComienzoEmail($equipo));
+                    try {
+                        Mail::to($equipo->cliente->email)->send(new ReparacionesComienzoEmail($equipo));
+                    } catch (\Throwable $e) {
+                    }
                 }
             }
         }

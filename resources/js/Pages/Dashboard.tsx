@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/UserAccountMenu';
+/*import AuthenticatedLayout from '@/Layouts/UserAccountMenu';
 import { Head } from '@inertiajs/react';
 
 export default function Dashboard() {
@@ -23,4 +23,4 @@ export default function Dashboard() {
             </div>
         </AuthenticatedLayout>
     );
-}
+}*/

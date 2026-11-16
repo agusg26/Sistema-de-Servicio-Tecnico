@@ -21,10 +21,10 @@ return new class extends Migration
 
         $datos = [
             ['nombre' => 'Pendiente de asignación', 'color' => '#ef4444'],
-            ['nombre' => 'Asignado', 'color' => '#cd7216ff'],
-            ['nombre' => 'Diagnosticado', 'color' => '#135eb9ff'],
-            ['nombre' => 'En Reparación', 'color' => '#e5e815ff'],
-            ['nombre' => 'Reparacion Completa', 'color' => '#1cad3ed7'],
+            ['nombre' => 'Asignado', 'color' => '#cd7216'],
+            ['nombre' => 'Diagnosticado', 'color' => '#135eb9'],
+            ['nombre' => 'En Reparación', 'color' => '#e5e815'],
+            ['nombre' => 'Reparacion Completa', 'color' => '#1cad3e'],
             ['nombre' => 'Cancelado', 'color' => '#ef4444'],
             ['nombre' => 'Retirado', 'color' => '#f5f3f1'],
 

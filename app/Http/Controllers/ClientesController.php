@@ -14,7 +14,7 @@ class ClientesController extends Controller
      */
     public function index()
     {
-        $clientes = Cliente::all();
+        $clientes = Cliente::with(['equipos.estado'])->get();
         return inertia(
             'Clientes',
             ['clientes' => $clientes]
@@ -44,6 +44,8 @@ class ClientesController extends Controller
      */
     public function edit(Cliente $cliente)
     {
+        $cliente->load(['equipos.estado']);
+
         return Inertia::render('Clientes/EditClients', [
             'cliente' => $cliente
         ]);

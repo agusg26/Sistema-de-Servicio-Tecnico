@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { Eye, Pencil, UserGroup, Phone } from "lucide-react";
 import { useState } from 'react';
-import EditClients from './EditClients';
+import EditClients, { EquipoCliente } from './EditClients';
 
 export interface Cliente {
     id: number,
@@ -10,6 +10,7 @@ export interface Cliente {
     telefono: string,
     email?: string | null,
     dni: string,
+    equipos?: EquipoCliente[],
 }
 
 interface Props {
@@ -108,23 +109,6 @@ export default function ShowClients({ clientes }: Props) {
                                                 hover:text-lime-400
                                                 cursor-pointer
                                                 "
-                                            >
-                                                <Eye size={15} />
-                                                VER
-                                            </button>
-
-                                            <button
-                                                className="
-                            flex items-center gap-2
-                            border border-[#333]
-                            px-4 py-2
-                            text-xs font-black
-                            text-gray-400
-                            transition
-                            hover:border-lime-400
-                            hover:text-lime-400
-                            cursor-pointer
-                          "
                                             >
                                                 <Pencil size={15} />
                                                 EDITAR

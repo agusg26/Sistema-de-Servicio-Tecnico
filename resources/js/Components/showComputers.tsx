@@ -4,6 +4,7 @@ import { Eye, Pencil, PackageOpen, Calendar } from 'lucide-react';
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import ProductFilters, { FilterOption } from './filter';
+import Dashboard from './dashBoard';
 
 const endpoint = '/api/computers';
 
@@ -51,11 +52,10 @@ interface SharedPageProps {
     [key: string]: any;
 }
 
-type Tab = 'asignados' | 'todos';
+type Tab = 'dashboard' | 'asignados' | 'todos';
 
 export default function ShowComputers() {
     const [computers, setComputers] = useState<Computer[]>([]);
-    const [activeTab, setActiveTab] = useState<Tab>('todos');
 
     const [search, setSearch] = useState('');
     const [clientName, setClientName] = useState('');
@@ -91,6 +91,9 @@ export default function ShowComputers() {
     };
 
     const isAdmin = hasRole('admin', 'super admin');
+    const [activeTab, setActiveTab] = useState<Tab>(
+        isAdmin ? 'dashboard' : 'todos'
+    );
 
     // Comprobar si puede editar un equipo específico
     const puedeEditar = (equipoUserId: number | null) => {
@@ -112,7 +115,7 @@ export default function ShowComputers() {
         }
     };
 
-    // Extraer estados únicos
+    // Extraer todos los estados únicos (incluyendo Cancelado y Retirado para el filtro)
     const statusOptions: FilterOption[] = useMemo(() => {
         const nombres = computers
             .map((c) => c.estado?.nombre)
@@ -139,14 +142,19 @@ export default function ShowComputers() {
         router.get('/equipos/create', { dni: dni.trim() });
     };
 
-    // Equipos asignados al usuario logueado
+    // Equipos asignados al usuario logueado (ocultando Cancelado id 6 y Retirado id 7)
     const filterByUser = useMemo(() => {
         if (!user?.id) return [];
 
-        return computers.filter((comp) => comp.user_id === user.id);
+        return computers.filter(
+            (comp) =>
+                comp.user_id === user.id &&
+                Number(comp.estado_id) !== 6 &&
+                Number(comp.estado_id) !== 7
+        );
     }, [computers, user?.id]);
 
-    // Todos los equipos filtrados
+    // Todos los equipos filtrados (por defecto oculta id 6 y 7, pero permite verlos si se seleccionan en el filtro de estado)
     const filteredComputers = useMemo(() => {
         return computers.filter((comp) => {
             if (search.trim()) {
@@ -182,7 +190,7 @@ export default function ShowComputers() {
                     return false;
                 }
             } else {
-                if (estadoActual === 'cancelado') {
+                if (Number(comp.estado_id) === 6 || Number(comp.estado_id) === 7) {
                     return false;
                 }
             }
@@ -346,15 +354,33 @@ export default function ShowComputers() {
         <section className="space-y-5">
 
             {/* SOLAPAS */}
-            <div className="grid grid-cols-2 overflow-hidden rounded border border-[#292929] bg-[#090909]">
+            <div
+                className={`grid overflow-hidden rounded border border-[#292929] bg-[#090909] ${
+                    isAdmin ? 'grid-cols-3' : 'grid-cols-2'
+                }`}
+            >
+                {isAdmin && (
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('dashboard')}
+                        className={`border-r border-[#292929] px-4 py-5 text-xs font-black tracking-[0.2em] transition cursor-pointer ${
+                            activeTab === 'dashboard'
+                                ? 'bg-lime-400/10 text-lime-400'
+                                : 'bg-transparent text-gray-400 hover:bg-[#151515] hover:text-white'
+                        }`}
+                    >
+                        DASHBOARD
+                    </button>
+                )}
 
                 <button
                     type="button"
                     onClick={() => setActiveTab('asignados')}
-                    className={`border-r border-[#292929] px-4 py-5 text-xs font-black tracking-[0.2em] transition cursor-pointer ${activeTab === 'asignados'
+                    className={`border-r border-[#292929] px-4 py-5 text-xs font-black tracking-[0.2em] transition cursor-pointer ${
+                        activeTab === 'asignados'
                             ? 'bg-lime-400/10 text-lime-400'
                             : 'bg-transparent text-gray-400 hover:bg-[#151515] hover:text-white'
-                        }`}
+                    }`}
                 >
                     MIS EQUIPOS ASIGNADOS
                 </button>
@@ -362,15 +388,18 @@ export default function ShowComputers() {
                 <button
                     type="button"
                     onClick={() => setActiveTab('todos')}
-                    className={`px-4 py-5 text-xs font-black tracking-[0.2em] transition cursor-pointer ${activeTab === 'todos'
+                    className={`px-4 py-5 text-xs font-black tracking-[0.2em] transition cursor-pointer ${
+                        activeTab === 'todos'
                             ? 'bg-lime-400/10 text-lime-400'
                             : 'bg-transparent text-gray-400 hover:bg-[#151515] hover:text-white'
-                        }`}
+                    }`}
                 >
                     TODOS LOS EQUIPOS
                 </button>
-
             </div>
+
+            {/* CONTENIDO DE LA SOLAPA: DASHBOARD (SOLO ADMINISTRADORES) */}
+            {isAdmin && activeTab === 'dashboard' && <Dashboard />}
 
             {/* CONTENIDO DE LA SOLAPA: MIS EQUIPOS */}
             {activeTab === 'asignados' && (

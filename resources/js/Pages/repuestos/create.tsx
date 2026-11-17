@@ -1,20 +1,104 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import type { FormEvent } from 'react';
+import { useState, useRef, useEffect, useMemo, type FormEvent } from 'react';
 import { MainLayout } from '@/Layouts/MainLayout';
 import type { CategoriaRepuesto } from '@/Components/Repuestos/EditRepuestos';
+import { Search, ChevronDown, X, Check, Tag } from 'lucide-react';
 
 interface Props {
     categorias: CategoriaRepuesto[];
 }
 
 export default function CreateRepuestos({ categorias = [] }: Props) {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm<{
+        nombre: string;
+        marca: string;
+        stock: number;
+        precio_unitario: number;
+        categoria_repuesto_id: number | '';
+    }>({
         nombre: '',
         marca: '',
         stock: 0,
         precio_unitario: 0,
         categoria_repuesto_id: categorias[0]?.id ?? '',
     });
+
+    const [searchCategoria, setSearchCategoria] = useState(
+        categorias[0]?.nombre ?? ''
+    );
+    const [isCategoriaOpen, setIsCategoriaOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Cerrar el dropdown del autocomplete al hacer clic fuera
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (
+                dropdownRef.current &&
+                !dropdownRef.current.contains(e.target as Node)
+            ) {
+                setIsCategoriaOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Cerrar el dropdown al presionar Escape
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isCategoriaOpen) {
+                setIsCategoriaOpen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isCategoriaOpen]);
+
+    const selectedCategoria = useMemo(() => {
+        return (
+            categorias.find((c) => c.id === Number(data.categoria_repuesto_id)) ||
+            null
+        );
+    }, [categorias, data.categoria_repuesto_id]);
+
+    const filteredCategorias = useMemo(() => {
+        const query = searchCategoria.trim().toLowerCase();
+        if (!query) return categorias;
+        return categorias.filter((c) =>
+            c.nombre.toLowerCase().includes(query)
+        );
+    }, [categorias, searchCategoria]);
+
+    const handleSelectCategoria = (categoria: CategoriaRepuesto | null) => {
+        if (categoria) {
+            setData('categoria_repuesto_id', categoria.id);
+            setSearchCategoria(categoria.nombre);
+        } else {
+            setData('categoria_repuesto_id', '');
+            setSearchCategoria('');
+        }
+        setIsCategoriaOpen(false);
+    };
+
+    const handleSearchCategoriaChange = (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const value = e.target.value;
+        setSearchCategoria(value);
+        setIsCategoriaOpen(true);
+
+        if (!value.trim()) {
+            setData('categoria_repuesto_id', '');
+        } else if (
+            selectedCategoria &&
+            selectedCategoria.nombre.toLowerCase() !== value.trim().toLowerCase()
+        ) {
+            const exactMatch = categorias.find(
+                (c) => c.nombre.toLowerCase() === value.trim().toLowerCase()
+            );
+            setData('categoria_repuesto_id', exactMatch ? exactMatch.id : '');
+        }
+    };
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -32,12 +116,12 @@ export default function CreateRepuestos({ categorias = [] }: Props) {
                         <div className="mb-2 flex items-center gap-3">
                             <span className="h-2 w-2 rounded-full bg-lime-400" />
                             <span className="text-xs font-black tracking-[0.3em] text-lime-400">
-                                GESTIÓN DE INVENTARIO
+                                REGISTRAR REPUESTO
                             </span>
                         </div>
 
                         <h1 className="text-3xl font-black tracking-tight text-white">
-                            REGISTRAR REPUESTO
+                            DATOS DEL REPUESTO
                         </h1>
 
                         <p className="mt-2 text-sm text-gray-500">
@@ -48,26 +132,9 @@ export default function CreateRepuestos({ categorias = [] }: Props) {
                     {/* FORMULARIO */}
                     <form
                         onSubmit={submit}
-                        className="overflow-hidden border border-[#292929] bg-[#0d0d0d]"
+                        className="border border-[#292929] bg-[#0d0d0d]"
                     >
                         <section>
-                            <div className="border-b border-[#222222] px-7 py-5">
-                                <div className="flex items-center gap-4">
-                                    <div className="flex h-9 w-9 items-center justify-center border border-lime-400/40 bg-lime-400/10 text-sm font-black text-lime-400">
-                                        01
-                                    </div>
-
-                                    <div>
-                                        <h2 className="text-sm font-black tracking-[0.18em] text-gray-200">
-                                            DATOS DEL REPUESTO
-                                        </h2>
-
-                                        <p className="mt-1 text-xs text-gray-600">
-                                            Información general, stock y precio unitario
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
 
                             <div className="grid grid-cols-1 gap-5 p-7 md:grid-cols-2">
                                 <div className="md:col-span-2">
@@ -138,44 +205,121 @@ export default function CreateRepuestos({ categorias = [] }: Props) {
                                     )}
                                 </div>
 
-                                <div>
+                                {/* AUTOCOMPLETE DE CATEGORÍA */}
+                                <div ref={dropdownRef} className="relative">
                                     <label className="mb-2 block text-xs font-black tracking-wider text-gray-500">
                                         CATEGORÍA
                                     </label>
 
-                                    <select
-                                        value={data.categoria_repuesto_id}
-                                        onChange={(e) =>
-                                            setData(
-                                                'categoria_repuesto_id',
-                                                Number(e.target.value)
-                                            )
-                                        }
-                                        className="
-                                            h-12 w-full
-                                            border border-[#292929]
-                                            bg-[#090909]
-                                            px-4
-                                            text-sm text-gray-300
-                                            outline-none
-                                            transition
-                                            focus:border-lime-400
-                                        "
-                                        required
-                                    >
-                                        <option value="" disabled>
-                                            Seleccione una categoría
-                                        </option>
-                                        {categorias.map((cat) => (
-                                            <option
-                                                key={cat.id}
-                                                value={cat.id}
-                                                className="bg-[#090909] text-white"
+                                    <div className="relative">
+                                        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-500">
+                                            <Search size={15} />
+                                        </span>
+
+                                        <input
+                                            type="text"
+                                            value={searchCategoria}
+                                            onChange={handleSearchCategoriaChange}
+                                            onFocus={() => setIsCategoriaOpen(true)}
+                                            placeholder="Buscar o seleccionar categoría..."
+                                            className="
+                                                h-12 w-full
+                                                border border-[#292929]
+                                                bg-[#090909]
+                                                pl-10 pr-16
+                                                text-sm text-white
+                                                outline-none
+                                                transition
+                                                placeholder:text-gray-700
+                                                focus:border-lime-400
+                                            "
+                                        />
+
+                                        <div className="absolute inset-y-0 right-0 flex items-center gap-1 pr-3">
+                                            {searchCategoria && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleSelectCategoria(null)
+                                                    }
+                                                    className="p-1 text-gray-500 transition hover:text-white cursor-pointer"
+                                                    title="Limpiar categoría"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setIsCategoriaOpen((prev) => !prev)
+                                                }
+                                                className="p-1 text-gray-500 transition hover:text-white cursor-pointer"
                                             >
-                                                {cat.nombre.toUpperCase()}
-                                            </option>
-                                        ))}
-                                    </select>
+                                                <ChevronDown
+                                                    size={16}
+                                                    className={`transition-transform duration-200 ${isCategoriaOpen
+                                                        ? 'rotate-180'
+                                                        : ''
+                                                        }`}
+                                                />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Lista desplegable de sugerencias */}
+                                    {isCategoriaOpen && (
+                                        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto border border-[#292929] bg-[#0c0c0c] shadow-2xl">
+                                            {filteredCategorias.length === 0 ? (
+                                                <div className="px-4 py-4 text-center text-xs text-gray-500">
+                                                    No se encontraron categorías con &ldquo;
+                                                    {searchCategoria}&rdquo;
+                                                </div>
+                                            ) : (
+                                                filteredCategorias.map((cat) => {
+                                                    const isSelected =
+                                                        Number(
+                                                            data.categoria_repuesto_id
+                                                        ) === cat.id;
+
+                                                    return (
+                                                        <button
+                                                            key={cat.id}
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleSelectCategoria(cat)
+                                                            }
+                                                            className={`flex w-full items-center justify-between border-b border-[#181818] px-4 py-3 text-left text-xs transition last:border-b-0 hover:bg-[#161616] cursor-pointer ${isSelected
+                                                                ? 'bg-[#151515] font-bold text-lime-400'
+                                                                : 'text-gray-200'
+                                                                }`}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <Tag
+                                                                    size={13}
+                                                                    className={
+                                                                        isSelected
+                                                                            ? 'text-lime-400'
+                                                                            : 'text-gray-500'
+                                                                    }
+                                                                />
+                                                                <span className="uppercase">
+                                                                    {cat.nombre}
+                                                                </span>
+                                                            </div>
+
+                                                            {isSelected && (
+                                                                <Check
+                                                                    size={14}
+                                                                    className="text-lime-400"
+                                                                />
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    )}
 
                                     {errors.categoria_repuesto_id && (
                                         <div className="mt-2 flex items-center gap-2 text-xs font-semibold text-red-400">

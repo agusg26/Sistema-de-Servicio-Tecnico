@@ -5,6 +5,7 @@ use App\Http\Controllers\Equiposcontroller;
 use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\Reparacionescontroller;
 use App\Http\Controllers\RepuestosController;
+use App\Http\Controllers\EmpleadosController;
 use App\Models\Equipo;
 use App\Http\Controllers\ReportesController;
 // Redirigir la raíz directamente al listado de equipos
@@ -38,6 +39,12 @@ Route::middleware(['auth', 'role:admin|super admin'])->group(function () {
     Route::get('/reportes', [ReportesController::class, 'index'])->name('reportes.index');
     Route::get('/reportes/equipos-pdf', [ReportesController::class, 'generarPdf'])->name('reportes.equipos.pdf');
     Route::get('/reportes/equipos-excel', [ReportesController::class, 'generarExcel'])->name('reportes.equipos.excel');
+    Route::get('/repuestos/create', [RepuestosController::class, 'create'])->name('repuestos.create');
+    Route::get('/repuestos/edit/{repuesto}', [RepuestosController::class, 'edit'])->name('repuestos.edit');
+
+    Route::get('/empleados', [EmpleadosController::class, 'index'])->name('empleados.index');
+    Route::put('/empleados/{empleado}', [EmpleadosController::class, 'update'])->name('empleados.update');
+    Route::delete('/empleados/{empleado}', [EmpleadosController::class, 'destroy'])->name('empleados.destroy');
 });
 
 

@@ -39,7 +39,7 @@ export default function CreateEquipos({ estados }: Props) {
 
                 {/* SECCIÓN 1: DATOS DEL CLIENTE */}
                 <div className="border-b pb-4">
-                    <h2 className="text-lg font-semibold text-gray-700 mb-3">1. Información del Cliente</h2>
+                    <h2 className="text-lg font-semibold text-gray-700 mb-3">Información del Cliente</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-600">Nombre</label>

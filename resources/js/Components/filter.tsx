@@ -11,6 +11,9 @@ export interface ProductFiltersProps {
     onSearchChange?: (value: string) => void;
     clientName?: string;
     onClientNameChange?: (value: string) => void;
+    employeeName?: string;
+    onEmployeeNameChange?: (value: string) => void;
+    employeeOptions?: FilterOption[];
     date?: string;
     onDateChange?: (value: string) => void;
     status?: string;
@@ -26,6 +29,9 @@ export default function ProductFilters({
     onSearchChange,
     clientName = "",
     onClientNameChange,
+    employeeName = "",
+    onEmployeeNameChange,
+    employeeOptions = [],
     date = "",
     onDateChange,
     status = "",
@@ -40,11 +46,11 @@ export default function ProductFilters({
         if (onFilter) onFilter();
     };
 
-    const hasActiveFilters = Boolean(search || clientName || date || status);
+    const hasActiveFilters = Boolean(search || clientName || employeeName || date || status);
 
     return (
         <section className="border border-[#292929] bg-[#0d0d0d] p-5">
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-[1.5fr_1.5fr_1.2fr_1fr_auto_auto]">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-[1.3fr_1.3fr_1.1fr_1.1fr_1fr_auto_auto]">
                 {/* Buscar por Nombre de Equipo / Producto */}
                 <div className="relative">
                     <Search
@@ -94,6 +100,14 @@ export default function ProductFilters({
             "
                     />
                 </div>
+
+                {/* Seleccionar Empleado / Técnico */}
+                <FilterSelect
+                    label="EMPLEADO"
+                    value={employeeName}
+                    onChange={(val) => onEmployeeNameChange?.(val)}
+                    options={employeeOptions}
+                />
 
                 {/* Filtrar por Fecha de Ingreso */}
                 <div className="relative">

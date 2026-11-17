@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { X, Save } from 'lucide-react';
 import { FormEvent } from 'react';
 
@@ -17,6 +17,20 @@ export interface Repuesto {
     categoria?: CategoriaRepuesto;
     categoria_repuesto?: CategoriaRepuesto;
 }
+interface AuthUser {
+    id: number;
+    name: string;
+    email: string;
+    roles?: string[];
+    role?: string;
+
+}
+interface SharedPageProps {
+    auth: {
+        user: AuthUser;
+    };
+    [key: string]: any;
+}
 
 interface Props {
     repuesto: Repuesto;
@@ -32,6 +46,24 @@ export default function EditRepuestos({ repuesto, categorias, onClose }: Props) 
         precio_unitario: repuesto.precio_unitario,
         categoria_repuesto_id: repuesto.categoria_repuesto_id,
     });
+    const { auth } = usePage<SharedPageProps>().props;
+    const user = auth.user;
+
+    const hasRole = (...rolesPermitidos: string[]) => {
+        if (!user) return false;
+        if (Array.isArray(user.roles)) {
+            const rolesLower = user.roles.map((r: any) =>
+                (typeof r === 'string' ? r : r.name || '').toLowerCase()
+            );
+            return rolesPermitidos.some((rol) => rolesLower.includes(rol.toLowerCase()));
+        }
+        if (typeof user.role === 'string') {
+            return rolesPermitidos.some((rol) => rol.toLowerCase() === user.role?.toLowerCase());
+        }
+        return false;
+    };
+
+    const isAdmin = hasRole('admin', 'super admin');
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
@@ -88,21 +120,18 @@ export default function EditRepuestos({ repuesto, categorias, onClose }: Props) 
                         >
                             GESTIÓN DE REPUESTOS
                         </div>
-
-                        <h2
-                            className="
+                        {isAdmin && (
+                            <h2
+                                className="
                                 text-xl
                                 font-black
                                 tracking-tight
                                 text-white
                             "
-                        >
-                            EDITAR REPUESTO
-                        </h2>
-
-                        <p className="mt-1 text-xs text-gray-500">
-                            Modificá la información del repuesto seleccionado.
-                        </p>
+                            >
+                                EDITAR REPUESTO
+                            </h2>
+                        )}
                     </div>
 
                     <button
@@ -364,11 +393,11 @@ export default function EditRepuestos({ repuesto, categorias, onClose }: Props) 
                         >
                             CANCELAR
                         </button>
-
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="
+                        {isAdmin && (
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="
                                 flex items-center gap-2
                                 bg-lime-400
                                 px-6 py-3
@@ -382,11 +411,12 @@ export default function EditRepuestos({ repuesto, categorias, onClose }: Props) 
                                 disabled:opacity-50
                                 cursor-pointer
                             "
-                        >
-                            <Save size={16} />
+                            >
+                                <Save size={16} />
 
-                            {processing ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
-                        </button>
+                                {processing ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
+                            </button>
+                        )}
                     </div>
                 </form>
             </div>

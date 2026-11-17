@@ -27,6 +27,11 @@ interface Computer {
     updated_at?: string;
     cliente?: Cliente;
     estado?: Estado;
+    tecnico?: {
+        id: number;
+        name: string;
+        email: string;
+    } | null;
 }
 
 interface Estado {
@@ -49,6 +54,7 @@ interface SharedPageProps {
     auth: {
         user: AuthUser;
     };
+    users?: { id: number; name: string }[];
     [key: string]: any;
 }
 
@@ -59,12 +65,13 @@ export default function ShowComputers() {
 
     const [search, setSearch] = useState('');
     const [clientName, setClientName] = useState('');
+    const [employeeName, setEmployeeName] = useState('');
     const [date, setDate] = useState('');
     const [status, setStatus] = useState('');
     const [dni, setDni] = useState('');
     const [error, setError] = useState('');
 
-    const { auth } = usePage<SharedPageProps>().props;
+    const { auth, users = [] } = usePage<SharedPageProps>().props;
     const user = auth.user;
 
     // Helper de roles flexible
@@ -114,6 +121,27 @@ export default function ShowComputers() {
             console.error('Error fetching computers:', error);
         }
     };
+
+    // Opciones de todos los empleados para el select del filtro
+    const employeeOptions: FilterOption[] = useMemo(() => {
+        if (users.length > 0) {
+            return users.map((u) => ({
+                label: u.name.toUpperCase(),
+                value: String(u.id),
+            }));
+        }
+
+        const map = new Map<string, string>();
+        computers.forEach((c) => {
+            if (c.tecnico?.id && c.tecnico?.name) {
+                map.set(String(c.tecnico.id), c.tecnico.name.toUpperCase());
+            }
+        });
+        return Array.from(map.entries()).map(([value, label]) => ({
+            label,
+            value,
+        }));
+    }, [users, computers]);
 
     // Extraer todos los estados únicos (incluyendo Cancelado y Retirado para el filtro)
     const statusOptions: FilterOption[] = useMemo(() => {
@@ -175,6 +203,12 @@ export default function ShowComputers() {
                 if (!fullName.includes(term)) return false;
             }
 
+            if (employeeName) {
+                if (String(comp.user_id ?? '') !== String(employeeName)) {
+                    return false;
+                }
+            }
+
             if (date) {
                 if (!comp.created_at) return false;
 
@@ -197,11 +231,12 @@ export default function ShowComputers() {
 
             return true;
         });
-    }, [computers, search, clientName, date, status]);
+    }, [computers, search, clientName, employeeName, date, status]);
 
     const handleReset = () => {
         setSearch('');
         setClientName('');
+        setEmployeeName('');
         setDate('');
         setStatus('');
     };
@@ -355,19 +390,17 @@ export default function ShowComputers() {
 
             {/* SOLAPAS */}
             <div
-                className={`grid overflow-hidden rounded border border-[#292929] bg-[#090909] ${
-                    isAdmin ? 'grid-cols-3' : 'grid-cols-2'
-                }`}
+                className={`grid overflow-hidden rounded border border-[#292929] bg-[#090909] ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'
+                    }`}
             >
                 {isAdmin && (
                     <button
                         type="button"
                         onClick={() => setActiveTab('dashboard')}
-                        className={`border-r border-[#292929] px-4 py-5 text-xs font-black tracking-[0.2em] transition cursor-pointer ${
-                            activeTab === 'dashboard'
-                                ? 'bg-lime-400/10 text-lime-400'
-                                : 'bg-transparent text-gray-400 hover:bg-[#151515] hover:text-white'
-                        }`}
+                        className={`border-r border-[#292929] px-4 py-5 text-xs font-black tracking-[0.2em] transition cursor-pointer ${activeTab === 'dashboard'
+                            ? 'bg-lime-400/10 text-lime-400'
+                            : 'bg-transparent text-gray-400 hover:bg-[#151515] hover:text-white'
+                            }`}
                     >
                         DASHBOARD
                     </button>
@@ -376,11 +409,10 @@ export default function ShowComputers() {
                 <button
                     type="button"
                     onClick={() => setActiveTab('asignados')}
-                    className={`border-r border-[#292929] px-4 py-5 text-xs font-black tracking-[0.2em] transition cursor-pointer ${
-                        activeTab === 'asignados'
-                            ? 'bg-lime-400/10 text-lime-400'
-                            : 'bg-transparent text-gray-400 hover:bg-[#151515] hover:text-white'
-                    }`}
+                    className={`border-r border-[#292929] px-4 py-5 text-xs font-black tracking-[0.2em] transition cursor-pointer ${activeTab === 'asignados'
+                        ? 'bg-lime-400/10 text-lime-400'
+                        : 'bg-transparent text-gray-400 hover:bg-[#151515] hover:text-white'
+                        }`}
                 >
                     MIS EQUIPOS ASIGNADOS
                 </button>
@@ -388,11 +420,10 @@ export default function ShowComputers() {
                 <button
                     type="button"
                     onClick={() => setActiveTab('todos')}
-                    className={`px-4 py-5 text-xs font-black tracking-[0.2em] transition cursor-pointer ${
-                        activeTab === 'todos'
-                            ? 'bg-lime-400/10 text-lime-400'
-                            : 'bg-transparent text-gray-400 hover:bg-[#151515] hover:text-white'
-                    }`}
+                    className={`px-4 py-5 text-xs font-black tracking-[0.2em] transition cursor-pointer ${activeTab === 'todos'
+                        ? 'bg-lime-400/10 text-lime-400'
+                        : 'bg-transparent text-gray-400 hover:bg-[#151515] hover:text-white'
+                        }`}
                 >
                     TODOS LOS EQUIPOS
                 </button>
@@ -441,6 +472,9 @@ export default function ShowComputers() {
                         onSearchChange={setSearch}
                         clientName={clientName}
                         onClientNameChange={setClientName}
+                        employeeName={employeeName}
+                        onEmployeeNameChange={setEmployeeName}
+                        employeeOptions={employeeOptions}
                         date={date}
                         onDateChange={setDate}
                         status={status}

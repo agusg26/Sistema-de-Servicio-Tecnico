@@ -89,15 +89,6 @@ export default function EditClients({ cliente, onClose }: Props) {
                 ">
 
                     <div>
-                        <div className="
-                            mb-2
-                            text-[10px]
-                            font-black
-                            tracking-[0.3em]
-                            text-lime-400
-                        ">
-                            GESTIÓN DE CLIENTES
-                        </div>
 
                         <h2 className="
                             text-xl
@@ -107,10 +98,6 @@ export default function EditClients({ cliente, onClose }: Props) {
                         ">
                             EDITAR CLIENTE
                         </h2>
-
-                        <p className="mt-1 text-xs text-gray-500">
-                            Modificá la información del cliente seleccionado.
-                        </p>
                     </div>
 
                     <button

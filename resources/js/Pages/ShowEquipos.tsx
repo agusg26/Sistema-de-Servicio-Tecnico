@@ -219,38 +219,14 @@ export default function ShowEquipos({ equipo }: Props) {
 
                         <div>
                             <div className="flex flex-wrap items-center gap-2.5">
-                                <span className="bg-lime-400/10 px-2 py-0.5 text-xs font-black text-lime-400">
+                                <span className="px-2 py-0.5 text-xs font-black text-lime-400">
                                     #{equipo.id}
                                 </span>
 
                                 <h1 className="text-xl font-black tracking-wide text-white sm:text-2xl">
                                     {equipo.nombre}
                                 </h1>
-
-                                {equipo.estado && (
-                                    <span
-                                        className="inline-flex items-center gap-2 border px-3 py-1 text-xs font-bold"
-                                        style={{
-                                            backgroundColor: `${equipo.estado.color || '#888'}15`,
-                                            borderColor: `${equipo.estado.color || '#888'}40`,
-                                            color: equipo.estado.color || '#fff',
-                                        }}
-                                    >
-                                        <span
-                                            className="h-2 w-2 rounded-full"
-                                            style={{
-                                                backgroundColor:
-                                                    equipo.estado.color || '#888',
-                                            }}
-                                        />
-                                        {equipo.estado.nombre}
-                                    </span>
-                                )}
                             </div>
-
-                            <p className="mt-1 text-xs text-gray-500">
-                                Detalle y seguimiento del equipo
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -286,10 +262,6 @@ export default function ShowEquipos({ equipo }: Props) {
 
                         <InfoRow label="Fecha de ingreso">
                             <span className="flex items-center gap-2">
-                                <Calendar
-                                    size={14}
-                                    className="text-lime-400"
-                                />
                                 {formatDateTime(equipo.created_at)}
                             </span>
                         </InfoRow>
@@ -415,30 +387,24 @@ export default function ShowEquipos({ equipo }: Props) {
                                 return (
                                     <div
                                         key={rep.id}
-                                        className={`grid grid-cols-1 gap-3 border-b border-[#252525] py-4 last:border-b-0 sm:grid-cols-[1fr_auto_150px_180px] sm:items-center ${
-                                            esCancelada ? 'opacity-65' : ''
-                                        }`}
+                                        className={`grid grid-cols-1 gap-3 border-b border-[#252525] py-4 last:border-b-0 sm:grid-cols-[1fr_auto_150px_180px] sm:items-center ${esCancelada ? 'opacity-65' : ''
+                                            }`}
                                     >
                                         {/* TÍTULO, DESCRIPCIÓN Y ESTADO */}
                                         <div>
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <span
-                                                    className={`text-sm font-bold ${
-                                                        esCancelada
-                                                            ? 'line-through text-gray-400'
-                                                            : 'text-gray-100'
-                                                    }`}
+                                                    className={`text-sm font-bold ${esCancelada
+                                                        ? 'line-through text-gray-400'
+                                                        : 'text-gray-100'
+                                                        }`}
                                                 >
                                                     {rep.titulo}
                                                 </span>
 
-                                                {esCancelada ? (
-                                                    <span className="border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-red-400">
+                                                {esCancelada && (
+                                                    <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-red-400">
                                                         Cancelada
-                                                    </span>
-                                                ) : (
-                                                    <span className="border border-lime-400/40 bg-lime-400/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-lime-400">
-                                                        Activa
                                                     </span>
                                                 )}
                                             </div>
@@ -454,7 +420,6 @@ export default function ShowEquipos({ equipo }: Props) {
                                         <div className="text-xs text-gray-400">
                                             {rep.repuesto ? (
                                                 <span className="inline-flex items-center gap-1.5 border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 font-semibold text-blue-400">
-                                                    <Package size={13} />
                                                     {rep.repuesto.nombre}
                                                 </span>
                                             ) : (
@@ -466,11 +431,10 @@ export default function ShowEquipos({ equipo }: Props) {
 
                                         {/* COSTO */}
                                         <div
-                                            className={`font-mono text-sm font-black sm:text-right ${
-                                                esCancelada
-                                                    ? 'line-through text-red-400'
-                                                    : 'text-lime-400'
-                                            }`}
+                                            className={`font-mono text-sm font-black sm:text-right ${esCancelada
+                                                ? 'line-through text-red-400'
+                                                : 'text-lime-400'
+                                                }`}
                                         >
                                             ${Number(rep.costo).toLocaleString('es-AR')}
                                         </div>
@@ -536,12 +500,6 @@ export default function ShowEquipos({ equipo }: Props) {
                                                 {item.estado?.nombre ||
                                                     `Estado #${item.estado_id}`}
                                             </span>
-
-                                            {isLatest && (
-                                                <span className="bg-lime-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-lime-400">
-                                                    Actual
-                                                </span>
-                                            )}
                                         </div>
 
                                         {/* OBSERVACIONES */}

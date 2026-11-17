@@ -440,6 +440,7 @@ export default function RepuestosIndex({
                 <VerRepuestoModal
                     repuesto={repuestoViendo}
                     categoriaNombre={getCategoriaNombre(repuestoViendo)}
+                    isAdmin={isAdmin}
                     onClose={() => setRepuestoViendo(null)}
                     onEdit={() => {
                         const target = repuestoViendo;
@@ -455,6 +456,7 @@ export default function RepuestosIndex({
 interface VerRepuestoModalProps {
     repuesto: Repuesto;
     categoriaNombre: string;
+    isAdmin: boolean;
     onClose: () => void;
     onEdit: () => void;
 }
@@ -462,6 +464,7 @@ interface VerRepuestoModalProps {
 function VerRepuestoModal({
     repuesto,
     categoriaNombre,
+    isAdmin,
     onClose,
     onEdit,
 }: VerRepuestoModalProps) {
@@ -543,14 +546,16 @@ function VerRepuestoModal({
                     >
                         CERRAR
                     </button>
-                    <button
-                        type="button"
-                        onClick={onEdit}
-                        className="flex items-center gap-2 bg-lime-400 px-5 py-2.5 text-xs font-black tracking-wider text-black transition hover:bg-lime-300 cursor-pointer"
-                    >
-                        <Pencil size={14} />
-                        EDITAR REPUESTO
-                    </button>
+                    {isAdmin && (
+                        <button
+                            type="button"
+                            onClick={onEdit}
+                            className="flex items-center gap-2 bg-lime-400 px-5 py-2.5 text-xs font-black tracking-wider text-black transition hover:bg-lime-300 cursor-pointer"
+                        >
+                            <Pencil size={14} />
+                            EDITAR REPUESTO
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

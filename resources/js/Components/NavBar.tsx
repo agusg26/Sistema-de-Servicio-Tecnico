@@ -45,7 +45,7 @@ const menuItems = [
     {
         name: "EMPLEADOS",
         icon: UserCircle,
-        link: "undefined",
+        link: "/empleados",
         rolesPermitidos: ["admin", "super admin"],
     },
 ];

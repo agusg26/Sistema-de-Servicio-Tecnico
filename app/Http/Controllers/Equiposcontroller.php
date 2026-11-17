@@ -24,6 +24,7 @@ class Equiposcontroller extends Controller
     {
         return Inertia::render('Equipos', [
             'equipos' => Equipo::with(['cliente', 'estado'])->get(),
+            'users'   => User::orderBy('name')->get(['id', 'name']),
             ...DashBoardController::getDashBoardData(),
         ]);
     }

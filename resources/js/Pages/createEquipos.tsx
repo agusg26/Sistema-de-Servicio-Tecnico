@@ -78,18 +78,9 @@ export default function CreateEquipos({
                             <span className="h-2 w-2 rounded-full bg-lime-400" />
 
                             <span className="text-xs font-black tracking-[0.3em] text-lime-400">
-                                SERVICIO TÉCNICO
+                                REGISTRAR EQUIPO
                             </span>
                         </div>
-
-                        <h1 className="text-3xl font-black tracking-tight text-white">
-                            REGISTRAR EQUIPO
-                        </h1>
-
-                        <p className="mt-2 text-sm text-gray-500">
-                            Registrá un nuevo cliente y su equipo en el
-                            servicio técnico.
-                        </p>
                     </div>
 
                     {/* FORMULARIO */}
@@ -108,18 +99,12 @@ export default function CreateEquipos({
 
                                 <div className="flex items-center gap-4">
 
-                                    <div className="flex h-9 w-9 items-center justify-center border border-lime-400/40 bg-lime-400/10 text-sm font-black text-lime-400">
-                                        01
-                                    </div>
 
                                     <div>
                                         <h2 className="text-sm font-black tracking-[0.18em] text-gray-200">
                                             INFORMACIÓN DEL CLIENTE
                                         </h2>
 
-                                        <p className="mt-1 text-xs text-gray-600">
-                                            Datos de contacto del propietario
-                                        </p>
                                     </div>
                                 </div>
 
@@ -324,18 +309,12 @@ export default function CreateEquipos({
 
                                 <div className="flex items-center gap-4">
 
-                                    <div className="flex h-9 w-9 items-center justify-center border border-lime-400/40 bg-lime-400/10 text-sm font-black text-lime-400">
-                                        02
-                                    </div>
 
                                     <div>
                                         <h2 className="text-sm font-black tracking-[0.18em] text-gray-200">
                                             INFORMACIÓN DEL EQUIPO
                                         </h2>
 
-                                        <p className="mt-1 text-xs text-gray-600">
-                                            Datos iniciales del equipo ingresado
-                                        </p>
                                     </div>
                                 </div>
                             </div>

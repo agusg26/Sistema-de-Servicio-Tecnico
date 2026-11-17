@@ -1,12 +1,13 @@
 
 import React, { useEffect, useState, useMemo, FormEvent } from 'react';
-import { Eye, Pencil, PackageOpen, Calendar } from 'lucide-react';
+import { Eye, Pencil, PackageOpen, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import ProductFilters, { FilterOption } from './filter';
 import Dashboard from './dashBoard';
 
 const endpoint = '/api/computers';
+const ITEMS_PER_PAGE = 6;
 
 interface Cliente {
     id: number;
@@ -70,6 +71,8 @@ export default function ShowComputers() {
     const [status, setStatus] = useState('');
     const [dni, setDni] = useState('');
     const [error, setError] = useState('');
+    const [currentPageAsignados, setCurrentPageAsignados] = useState(1);
+    const [currentPageTodos, setCurrentPageTodos] = useState(1);
 
     const { auth, users = [] } = usePage<SharedPageProps>().props;
     const user = auth.user;
@@ -230,8 +233,20 @@ export default function ShowComputers() {
             }
 
             return true;
+        }).sort((a, b) => {
+            const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            if (timeB !== timeA) {
+                return timeB - timeA;
+            }
+            return (b.id ?? 0) - (a.id ?? 0);
         });
     }, [computers, search, clientName, employeeName, date, status]);
+
+    // Reiniciar a la primera página al cambiar los filtros
+    useEffect(() => {
+        setCurrentPageTodos(1);
+    }, [search, clientName, employeeName, date, status]);
 
     const handleReset = () => {
         setSearch('');
@@ -239,6 +254,7 @@ export default function ShowComputers() {
         setEmployeeName('');
         setDate('');
         setStatus('');
+        setCurrentPageTodos(1);
     };
 
     const formatDate = (isoString?: string) => {
@@ -251,139 +267,198 @@ export default function ShowComputers() {
             : d.toLocaleDateString();
     };
 
-    // Renderizar tabla reutilizable
+    // Renderizar tabla reutilizable con paginación (> 6 filas)
     const renderTable = (
         items: Computer[],
         emptyMessage: string,
-        isAssignedTable = false
-    ) => (
-        <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] border-collapse">
-                <thead>
-                    <tr className="border-b border-[#292929] text-left">
-                        <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                            ID
-                        </th>
-                        <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                            CLIENTE
-                        </th>
-                        <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                            NOMBRE
-                        </th>
-                        <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                            FECHA INGRESO
-                        </th>
-                        <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
-                            ESTADO
-                        </th>
-                        <th className="px-7 py-4 text-xs font-black tracking-widest text-gray-500">
-                            ACCIONES
-                        </th>
-                    </tr>
-                </thead>
+        isAssignedTable = false,
+        currentPage = 1,
+        onPageChange?: (page: number) => void
+    ) => {
+        const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
+        const safePage = Math.min(currentPage, totalPages);
+        const startIdx = (safePage - 1) * ITEMS_PER_PAGE;
+        const paginatedItems = items.slice(startIdx, startIdx + ITEMS_PER_PAGE);
 
-                <tbody>
-                    {items.length === 0 ? (
-                        <tr>
-                            <td
-                                colSpan={6}
-                                className="px-5 py-10 text-center text-sm text-gray-500"
-                            >
-                                {emptyMessage}
-                            </td>
-                        </tr>
-                    ) : (
-                        items.map((comp) => (
-                            <tr
-                                key={comp.id}
-                                className="border-b border-[#202020] transition hover:bg-[#151515]"
-                            >
-                                <td className="px-5 py-4 font-bold text-gray-100">
-                                    {comp.id}
-                                </td>
+        return (
+            <div>
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[900px] border-collapse">
+                        <thead>
+                            <tr className="border-b border-[#292929] text-left">
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
+                                    ID
+                                </th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
+                                    CLIENTE
+                                </th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
+                                    NOMBRE
+                                </th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
+                                    FECHA INGRESO
+                                </th>
+                                <th className="px-5 py-4 text-xs font-black tracking-widest text-gray-500">
+                                    ESTADO
+                                </th>
+                                <th className="px-7 py-4 text-xs font-black tracking-widest text-gray-500">
+                                    ACCIONES
+                                </th>
+                            </tr>
+                        </thead>
 
-                                <td className="px-5 py-4 text-sm text-gray-300">
-                                    {comp.cliente
-                                        ? `${comp.cliente.nombre} ${comp.cliente.apellido}`
-                                        : 'Sin cliente'}
-                                </td>
-
-                                <td className="px-5 py-4 text-xs font-black text-gray-200">
-                                    {comp.nombre}
-                                </td>
-
-                                <td className="px-5 py-4 text-xs text-gray-400">
-                                    <span className="inline-flex items-center gap-1.5">
-                                        <Calendar
-                                            size={14}
-                                            className="text-gray-500"
-                                        />
-                                        {formatDate(comp.created_at)}
-                                    </span>
-                                </td>
-
-                                <td className="px-5 py-4">
-                                    <span
-                                        className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black"
-                                        style={{
-                                            backgroundColor: `${comp.estado?.color || '#888'}15`,
-                                            borderColor: `${comp.estado?.color || '#888'}40`,
-                                            color: comp.estado?.color || '#fff',
-                                        }}
+                        <tbody>
+                            {paginatedItems.length === 0 ? (
+                                <tr>
+                                    <td
+                                        colSpan={6}
+                                        className="px-5 py-10 text-center text-sm text-gray-500"
                                     >
-                                        <span
-                                            className="h-2 w-2 rounded-full"
-                                            style={{
-                                                backgroundColor:
-                                                    comp.estado?.color || '#888',
-                                            }}
-                                        />
+                                        {emptyMessage}
+                                    </td>
+                                </tr>
+                            ) : (
+                                paginatedItems.map((comp) => (
+                                    <tr
+                                        key={comp.id}
+                                        className="border-b border-[#202020] transition hover:bg-[#151515]"
+                                    >
+                                        <td className="px-5 py-4 font-bold text-gray-100">
+                                            {comp.id}
+                                        </td>
 
-                                        {comp.estado?.nombre || 'Sin estado'}
-                                    </span>
-                                </td>
+                                        <td className="px-5 py-4 text-sm text-gray-300">
+                                            {comp.cliente
+                                                ? `${comp.cliente.nombre} ${comp.cliente.apellido}`
+                                                : 'Sin cliente'}
+                                        </td>
 
-                                <td className="px-7 py-4">
-                                    <div className="flex gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                router.visit(
-                                                    route('equipos.show', comp.id)
-                                                )
-                                            }
-                                            className="flex cursor-pointer items-center gap-2 border border-[#333] px-4 py-2 text-xs font-black text-gray-400 transition hover:border-lime-400 hover:text-lime-400"
-                                        >
-                                            <Eye size={15} />
-                                            VER
-                                        </button>
+                                        <td className="px-5 py-4 text-xs font-black text-gray-200">
+                                            {comp.nombre}
+                                        </td>
 
-                                        {/* En asignados se conserva el botón de edición.
-                                            En todos los equipos se comprueban los permisos. */}
-                                        {(isAssignedTable ||
-                                            puedeEditar(comp.user_id)) && (
+                                        <td className="px-5 py-4 text-xs text-gray-400">
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <Calendar
+                                                    size={14}
+                                                    className="text-gray-500"
+                                                />
+                                                {formatDate(comp.created_at)}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-5 py-4">
+                                            <span
+                                                className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-black"
+                                                style={{
+                                                    backgroundColor: `${comp.estado?.color || '#888'}15`,
+                                                    borderColor: `${comp.estado?.color || '#888'}40`,
+                                                    color: comp.estado?.color || '#fff',
+                                                }}
+                                            >
+                                                <span
+                                                    className="h-2 w-2 rounded-full"
+                                                    style={{
+                                                        backgroundColor:
+                                                            comp.estado?.color || '#888',
+                                                    }}
+                                                />
+
+                                                {comp.estado?.nombre || 'Sin estado'}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-7 py-4">
+                                            <div className="flex gap-3">
                                                 <button
                                                     type="button"
                                                     onClick={() =>
                                                         router.visit(
-                                                            route('equipos.edit', comp.id)
+                                                            route('equipos.show', comp.id)
                                                         )
                                                     }
                                                     className="flex cursor-pointer items-center gap-2 border border-[#333] px-4 py-2 text-xs font-black text-gray-400 transition hover:border-lime-400 hover:text-lime-400"
                                                 >
-                                                    <Pencil size={15} />
-                                                    EDITAR
+                                                    <Eye size={15} />
+                                                    VER
                                                 </button>
-                                            )}
-                                    </div>
-                                </td>
-                            </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
-        </div>
-    );
+
+                                                {(isAssignedTable ||
+                                                    puedeEditar(comp.user_id)) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            router.visit(
+                                                                route('equipos.edit', comp.id)
+                                                            )
+                                                        }
+                                                        className="flex cursor-pointer items-center gap-2 border border-[#333] px-4 py-2 text-xs font-black text-gray-400 transition hover:border-lime-400 hover:text-lime-400"
+                                                    >
+                                                        <Pencil size={15} />
+                                                        EDITAR
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* PAGINACIÓN (SOLO CUANDO HAY MÁS DE 6 FILAS) */}
+                {items.length > ITEMS_PER_PAGE && onPageChange && (
+                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#292929] bg-[#090909] px-7 py-4">
+                        <span className="text-xs font-bold text-gray-500">
+                            Mostrando {startIdx + 1} -{' '}
+                            {Math.min(startIdx + ITEMS_PER_PAGE, items.length)} de{' '}
+                            {items.length} equipos
+                        </span>
+
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                disabled={safePage <= 1}
+                                onClick={() => onPageChange(safePage - 1)}
+                                className="flex h-9 items-center gap-1 border border-[#292929] bg-[#0d0d0d] px-3 text-xs font-black text-gray-400 transition hover:border-lime-400 hover:text-lime-400 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                            >
+                                <ChevronLeft size={14} />
+                                ANTERIOR
+                            </button>
+
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                                (page) => (
+                                    <button
+                                        key={page}
+                                        type="button"
+                                        onClick={() => onPageChange(page)}
+                                        className={`flex h-9 w-9 items-center justify-center border text-xs font-black transition cursor-pointer ${
+                                            page === safePage
+                                                ? 'border-lime-400 bg-lime-400 text-black'
+                                                : 'border-[#292929] bg-[#0d0d0d] text-gray-400 hover:border-gray-500 hover:text-white'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                )
+                            )}
+
+                            <button
+                                type="button"
+                                disabled={safePage >= totalPages}
+                                onClick={() => onPageChange(safePage + 1)}
+                                className="flex h-9 items-center gap-1 border border-[#292929] bg-[#0d0d0d] px-3 text-xs font-black text-gray-400 transition hover:border-lime-400 hover:text-lime-400 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                            >
+                                SIGUIENTE
+                                <ChevronRight size={14} />
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <section className="space-y-5">
@@ -456,7 +531,9 @@ export default function ShowComputers() {
                     {renderTable(
                         filterByUser,
                         'No se encontraron equipos asignados a usted.',
-                        true
+                        true,
+                        currentPageAsignados,
+                        setCurrentPageAsignados
                     )}
 
                 </div>
@@ -505,7 +582,10 @@ export default function ShowComputers() {
 
                         {renderTable(
                             filteredComputers,
-                            'No se encontraron resultados con los filtros aplicados.'
+                            'No se encontraron resultados con los filtros aplicados.',
+                            false,
+                            currentPageTodos,
+                            setCurrentPageTodos
                         )}
 
                     </div>

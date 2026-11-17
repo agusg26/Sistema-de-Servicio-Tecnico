@@ -144,6 +144,7 @@ export default function CreateRepuestos({ categorias = [] }: Props) {
 
                                     <input
                                         type="text"
+                                        maxLength={50}
                                         value={data.nombre}
                                         onChange={(e) =>
                                             setData('nombre', e.target.value)
@@ -178,6 +179,7 @@ export default function CreateRepuestos({ categorias = [] }: Props) {
 
                                     <input
                                         type="text"
+                                        maxLength={30}
                                         value={data.marca}
                                         onChange={(e) =>
                                             setData('marca', e.target.value)

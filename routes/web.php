@@ -32,8 +32,7 @@ Route::middleware(['auth', 'role:tecnico|admin|super admin'])->group(function ()
     Route::get('/equipos/{equipo}/reporte', [Equiposcontroller::class, 'descargarReporte'])
         ->name('equipos.reporte');
 
-
-    Route::resource('repuestos', RepuestosController::class)->names('repuestos')->middleware(['auth', 'role:tecnico|admin|super admin']);
+    Route::resource('repuestos', RepuestosController::class)->only(['index']);
 });
 Route::middleware(['auth', 'role:admin|super admin'])->group(function () {
     Route::get('/reportes', [ReportesController::class, 'index'])->name('reportes.index');
